@@ -387,12 +387,14 @@ class _EditTransactionScreenState
         segments: [
           ButtonSegment(
             value: TransactionType.deposit,
-            label: Text(l10n.txTypeDeposit),
+            label: Text(l10n.txTypeDeposit,
+                maxLines: 1, overflow: TextOverflow.ellipsis),
             icon: const Icon(Icons.arrow_downward_rounded),
           ),
           ButtonSegment(
             value: TransactionType.withdrawal,
-            label: Text(l10n.txTypeWithdrawal),
+            label: Text(l10n.txTypeWithdrawal,
+                maxLines: 1, overflow: TextOverflow.ellipsis),
             icon: const Icon(Icons.arrow_upward_rounded),
           ),
         ],

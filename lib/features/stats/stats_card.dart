@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../app/routes.dart';
 import '../../core/money/money_format.dart';
@@ -13,7 +16,11 @@ import '../../l10n/l10n_ext.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
 import '../../widgets/empty_state.dart';
-import '../../widgets/net_text.dart';
+
+/// Short, symbol-less axis label (e.g. `4,8K`, `0`, `-200`) — the currency
+/// symbol on every gridline made labels too wide and they overlapped.
+String _axisLabel(double value, String locale) =>
+    NumberFormat.compact(locale: locale).format(value);
 
 enum _Range { d7, d30, d90, year, all }
 
@@ -82,6 +89,8 @@ class _StatsCardState extends ConsumerState<StatsCard> {
       from: from,
     );
     final rangeNet = series.isEmpty ? 0.0 : series.last.cumulativeBase;
+    final summaries =
+        ref.watch(portfolioProvider)?.siteSummaries ?? const <String, SiteSummary>{};
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
@@ -116,31 +125,71 @@ class _StatsCardState extends ConsumerState<StatsCard> {
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         if (series.length >= 2) ...[
-          Text(l10n.dashboardProfitOverTime,
-              style: theme.textTheme.titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          _LineChartBox(series: series, base: base, locale: locale),
-          const SizedBox(height: 28),
+          _SectionCard(
+            title: l10n.dashboardProfitOverTime,
+            child: _LineChartBox(series: series, base: base, locale: locale),
+          ),
+          const SizedBox(height: 14),
         ],
-        if (monthly.isNotEmpty) ...[
-          Text(l10n.statsByMonth,
-              style: theme.textTheme.titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          _MonthlyBarChart(data: monthly, base: base, locale: locale),
-          const SizedBox(height: 28),
-        ],
-        _BestWorst(
+        _SectionCard(
+          title: l10n.statsBySite,
+          child: _SiteBreakdown(
+            sites: sites,
+            summaries: summaries,
+            rates: rates,
+            base: base,
+            locale: locale,
+          ),
+        ),
+        const SizedBox(height: 14),
+        _BestWorstCards(
           sites: sites,
-          summaries: ref.watch(portfolioProvider)?.siteSummaries ?? const {},
+          summaries: summaries,
           rates: rates,
           base: base,
           locale: locale,
         ),
+        if (monthly.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _SectionCard(
+            title: l10n.statsByMonth,
+            child: _MonthlyBarChart(data: monthly, base: base, locale: locale),
+          ),
+        ],
       ],
+    );
+  }
+}
+
+/// A titled, bordered container that gives each stats block breathing room.
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.title, required this.child});
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: theme.textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
     );
   }
 }
@@ -165,14 +214,29 @@ class _LineChartBox extends StatelessWidget {
         FlSpot(i.toDouble(), series[i].cumulativeBase),
     ];
 
+    // Pad the value axis and always include the zero baseline.
+    final values = series.map((p) => p.cumulativeBase).toList();
+    var minV = values.reduce(math.min);
+    var maxV = values.reduce(math.max);
+    minV = math.min(minV, 0);
+    maxV = math.max(maxV, 0);
+    final pad = math.max((maxV - minV) * 0.12, 1.0);
+    final minY = minV - pad;
+    final maxY = maxV + pad;
+    final yInterval = math.max((maxY - minY) / 4, 1.0);
+    final labelStyle = theme.textTheme.bodySmall
+        ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+
     return SizedBox(
       height: 180,
       child: LineChart(
         LineChartData(
+          minY: minY,
+          maxY: maxY,
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
-            horizontalInterval: null,
+            horizontalInterval: yInterval,
             getDrawingHorizontalLine: (v) => FlLine(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
               strokeWidth: 1,
@@ -186,17 +250,16 @@ class _LineChartBox extends StatelessWidget {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 22,
-                interval: (series.length / 3).clamp(1, series.length).toDouble(),
+                reservedSize: 26,
+                interval: math.max((series.length - 1) / 2, 1).toDouble(),
                 getTitlesWidget: (value, meta) {
-                  final i = value.toInt();
+                  final i = value.round();
                   if (i < 0 || i >= series.length) return const SizedBox();
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      formatDayShort(series[i].date, locale),
-                      style: theme.textTheme.bodySmall,
-                    ),
+                  return SideTitleWidget(
+                    meta: meta,
+                    space: 8,
+                    child: Text(formatDayShort(series[i].date, locale),
+                        style: labelStyle),
                   );
                 },
               ),
@@ -204,10 +267,12 @@ class _LineChartBox extends StatelessWidget {
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 44,
-                getTitlesWidget: (value, meta) => Text(
-                  formatCompactMajor(value, base, localeName: locale),
-                  style: theme.textTheme.bodySmall,
+                reservedSize: 40,
+                interval: yInterval,
+                getTitlesWidget: (value, meta) => SideTitleWidget(
+                  meta: meta,
+                  space: 6,
+                  child: Text(_axisLabel(value, locale), style: labelStyle),
                 ),
               ),
             ),
@@ -257,6 +322,8 @@ class _MonthlyBarChart extends StatelessWidget {
     final maxAbs = data
         .map((m) => m.netBase.abs())
         .fold<double>(1, (a, b) => a > b ? a : b);
+    final labelStyle = theme.textTheme.bodySmall
+        ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
 
     return SizedBox(
       height: 180,
@@ -268,6 +335,7 @@ class _MonthlyBarChart extends StatelessWidget {
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
+            horizontalInterval: maxAbs,
             getDrawingHorizontalLine: (v) => FlLine(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
               strokeWidth: 1,
@@ -282,25 +350,28 @@ class _MonthlyBarChart extends StatelessWidget {
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 44,
-                getTitlesWidget: (value, meta) => Text(
-                  formatCompactMajor(value, base, localeName: locale),
-                  style: theme.textTheme.bodySmall,
+                reservedSize: 40,
+                interval: maxAbs,
+                getTitlesWidget: (value, meta) => SideTitleWidget(
+                  meta: meta,
+                  space: 6,
+                  child: Text(_axisLabel(value, locale), style: labelStyle),
                 ),
               ),
             ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 24,
+                reservedSize: 26,
                 getTitlesWidget: (value, meta) {
                   final i = value.toInt();
                   if (i < 0 || i >= data.length) return const SizedBox();
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 6),
+                  return SideTitleWidget(
+                    meta: meta,
+                    space: 8,
                     child: Text(
                       formatMonth(data[i].month, locale).split(' ').first,
-                      style: theme.textTheme.bodySmall,
+                      style: labelStyle,
                     ),
                   );
                 },
@@ -327,8 +398,97 @@ class _MonthlyBarChart extends StatelessWidget {
   }
 }
 
-class _BestWorst extends StatelessWidget {
-  const _BestWorst({
+/// Per-site horizontal bar breakdown ("Pr. spillested"): each site's net as a
+/// proportional bar coloured by profit/loss, with the value on the right.
+class _SiteBreakdown extends StatelessWidget {
+  const _SiteBreakdown({
+    required this.sites,
+    required this.summaries,
+    required this.rates,
+    required this.base,
+    required this.locale,
+  });
+
+  final List<Site> sites;
+  final Map<String, SiteSummary> summaries;
+  final Map<String, double> rates;
+  final String base;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final money = context.money;
+    final byId = {for (final s in sites) s.id: s};
+    final rows = summaries.values
+        .where((s) => byId.containsKey(s.siteId))
+        .map((s) => (
+              site: byId[s.siteId]!,
+              netBase: convertMinorToBase(s.netMinor, s.currencyCode, rates),
+            ))
+        .toList()
+      ..sort((a, b) => b.netBase.compareTo(a.netBase));
+    if (rows.isEmpty) return const SizedBox.shrink();
+    final maxAbs =
+        rows.map((r) => r.netBase.abs()).fold<double>(1, math.max);
+
+    return Column(
+      children: [
+        for (final r in rows)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 92,
+                  child: Text(
+                    r.site.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: (r.netBase.abs() / maxAbs).clamp(0.0, 1.0),
+                      minHeight: 12,
+                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                      color: money.forAmount(r.netBase),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 74,
+                  child: Text(
+                    formatMinorPlain(
+                      (r.netBase * 100).round(),
+                      localeName: locale,
+                      withSign: true,
+                    ),
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: money.forAmount(r.netBase),
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Best / worst site shown as two filled containers (green / red).
+class _BestWorstCards extends StatelessWidget {
+  const _BestWorstCards({
     required this.sites,
     required this.summaries,
     required this.rates,
@@ -345,8 +505,7 @@ class _BestWorst extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    if (summaries.isEmpty || sites.isEmpty) return const SizedBox.shrink();
-
+    final money = context.money;
     final byId = {for (final s in sites) s.id: s};
     final withNet = summaries.values
         .where((s) => byId.containsKey(s.siteId))
@@ -356,44 +515,85 @@ class _BestWorst extends StatelessWidget {
             ))
         .toList()
       ..sort((a, b) => b.netBase.compareTo(a.netBase));
-
     if (withNet.isEmpty) return const SizedBox.shrink();
+
     final best = withNet.first;
     final worst = withNet.last;
 
-    Widget row(String label, String name, double net) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
+    Widget card({
+      required String label,
+      required String name,
+      required double net,
+      required Color bg,
+      required Color fg,
+    }) {
+      return Expanded(
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant)),
-                    Text(name,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                  ],
-                ),
+              Text(
+                label.toUpperCase(),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: fg.withValues(alpha: 0.8),
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                    ),
               ),
-              NetText(
-                value: net,
-                text: formatMajor(net, base, localeName: locale, withSign: true),
-                style: Theme.of(context).textTheme.titleSmall,
+              const SizedBox(height: 8),
+              Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(color: fg, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                formatMajorSmart(net, base, localeName: locale, withSign: true),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: fg,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
               ),
             ],
           ),
-        );
+        ),
+      );
+    }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        row(l10n.statsBestSite, best.site.name, best.netBase),
-        if (worst.site.id != best.site.id)
-          row(l10n.statsWorstSite, worst.site.name, worst.netBase),
-      ],
+    // IntrinsicHeight bounds the cross-axis so the two cards can stretch to
+    // equal height without an unbounded-height error inside the ListView.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          card(
+            label: l10n.statsBestSite,
+            name: best.site.name,
+            net: best.netBase,
+            bg: money.profitContainer,
+            fg: money.onProfitContainer,
+          ),
+          const SizedBox(width: 12),
+          card(
+            label: l10n.statsWorstSite,
+            name: worst.site.name,
+            net: worst.netBase,
+            bg: money.lossContainer,
+            fg: money.onLossContainer,
+          ),
+        ],
+      ),
     );
   }
 }

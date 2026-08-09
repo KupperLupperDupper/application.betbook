@@ -111,6 +111,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 return _AnimatedDeckItem(
                   controller: _controller,
                   index: i,
+                  currentIndex: _index,
                   child: PlayingCard(
                     suit: section.suit,
                     label: section.label(context),
@@ -119,10 +120,15 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 );
               },
             ),
-            // FAB sits in its own band ABOVE the suit indicator so they never
-            // overlap, whatever the FAB's width.
+            // FAB sits centred in its own band ABOVE the suit indicator so they
+            // never overlap, whatever the FAB's width.
             if (fab != null)
-              Positioned(right: 12, bottom: 78, child: fab),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 78,
+                child: Center(child: fab),
+              ),
             Positioned(
               left: 0,
               right: 0,
@@ -147,11 +153,17 @@ class _AnimatedDeckItem extends StatelessWidget {
   const _AnimatedDeckItem({
     required this.controller,
     required this.index,
+    required this.currentIndex,
     required this.child,
   });
 
   final PageController controller;
   final int index;
+
+  /// The selected page — used as the scale reference when the controller has no
+  /// live scroll position yet (e.g. right after a locale rebuild), so the active
+  /// card doesn't momentarily render shrunk.
+  final int currentIndex;
   final Widget child;
 
   @override
@@ -159,12 +171,11 @@ class _AnimatedDeckItem extends StatelessWidget {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, child) {
-        var delta = 0.0;
-        if (controller.hasClients && controller.position.haveDimensions) {
-          delta = (controller.page ?? controller.initialPage.toDouble()) - index;
-        } else {
-          delta = (controller.initialPage - index).toDouble();
-        }
+        final double page =
+            (controller.hasClients && controller.position.haveDimensions)
+                ? (controller.page ?? currentIndex.toDouble())
+                : currentIndex.toDouble();
+        final delta = page - index;
         final t = (1 - delta.abs()).clamp(0.0, 1.0);
         final scale = AppDeck.neighbourScale + (1 - AppDeck.neighbourScale) * t;
         final opacity =

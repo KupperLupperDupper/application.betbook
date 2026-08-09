@@ -84,15 +84,18 @@ class ResponsibleGamblingScreen extends ConsumerWidget {
                           segments: [
                             ButtonSegment(
                               value: LimitPeriod.daily,
-                              label: Text(l10n.rgPeriodDaily),
+                              label: Text(l10n.rgPeriodDaily,
+                                  maxLines: 1, overflow: TextOverflow.ellipsis),
                             ),
                             ButtonSegment(
                               value: LimitPeriod.weekly,
-                              label: Text(l10n.rgPeriodWeekly),
+                              label: Text(l10n.rgPeriodWeekly,
+                                  maxLines: 1, overflow: TextOverflow.ellipsis),
                             ),
                             ButtonSegment(
                               value: LimitPeriod.monthly,
-                              label: Text(l10n.rgPeriodMonthly),
+                              label: Text(l10n.rgPeriodMonthly,
+                                  maxLines: 1, overflow: TextOverflow.ellipsis),
                             ),
                           ],
                           selected: {settings.depositLimitPeriod},

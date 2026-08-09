@@ -14,22 +14,21 @@ class ThemeModeSelector extends ConsumerWidget {
     final mode = ref.watch(settingsProvider.select((s) => s.themeMode));
     final notifier = ref.read(settingsProvider.notifier);
 
+    // Labels only — with three segments on a narrow phone, an icon + label
+    // makes "System" wrap mid-word. The design drops icons before labels here.
     return SegmentedButton<ThemeMode>(
       segments: [
         ButtonSegment(
           value: ThemeMode.system,
-          label: Text(l10n.themeSystem),
-          icon: const Icon(Icons.brightness_auto_rounded),
+          label: Text(l10n.themeSystem, maxLines: 1),
         ),
         ButtonSegment(
           value: ThemeMode.light,
-          label: Text(l10n.themeLight),
-          icon: const Icon(Icons.light_mode_rounded),
+          label: Text(l10n.themeLight, maxLines: 1),
         ),
         ButtonSegment(
           value: ThemeMode.dark,
-          label: Text(l10n.themeDark),
-          icon: const Icon(Icons.dark_mode_rounded),
+          label: Text(l10n.themeDark, maxLines: 1),
         ),
       ],
       selected: {mode},
