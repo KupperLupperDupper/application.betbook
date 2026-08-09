@@ -92,7 +92,7 @@ class _DashboardBody extends ConsumerWidget {
             : l10n.dashboardEvenOverall;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 90),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 140),
       children: [
         Text(
           '${l10n.dashboardAllTime} · $base',

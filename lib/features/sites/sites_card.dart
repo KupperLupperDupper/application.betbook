@@ -39,7 +39,7 @@ class SitesCard extends ConsumerWidget {
         }
         final base = portfolio.baseCurrency;
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 140),
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),

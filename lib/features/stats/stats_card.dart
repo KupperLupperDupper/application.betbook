@@ -84,7 +84,7 @@ class _StatsCardState extends ConsumerState<StatsCard> {
     final rangeNet = series.isEmpty ? 0.0 : series.last.cumulativeBase;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
       children: [
         SizedBox(
           height: 40,

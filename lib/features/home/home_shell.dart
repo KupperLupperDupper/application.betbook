@@ -80,16 +80,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    // Dashboard → add transaction; Sites → add site; others → none.
+    // Dashboard → compact "add transaction"; Sites → extended "add site".
     Widget? fab;
     if (_index == 0) {
-      fab = FloatingActionButton.extended(
+      fab = FloatingActionButton(
+        heroTag: null,
         onPressed: () => context.push(Routes.newTransaction),
-        icon: const Icon(Icons.add_rounded),
-        label: Text(l10n.txAdd),
+        child: const Icon(Icons.add_rounded),
       );
     } else if (_index == 1) {
       fab = FloatingActionButton.extended(
+        heroTag: null,
         onPressed: () => context.push(Routes.newSite),
         icon: const Icon(Icons.add_rounded),
         label: Text(l10n.siteAdd),
@@ -118,10 +119,14 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 );
               },
             ),
+            // FAB sits in its own band ABOVE the suit indicator so they never
+            // overlap, whatever the FAB's width.
+            if (fab != null)
+              Positioned(right: 12, bottom: 78, child: fab),
             Positioned(
               left: 0,
               right: 0,
-              bottom: 14,
+              bottom: 16,
               child: Center(
                 child: _SuitIndicator(
                   suits: [for (final s in _sections) s.suit],
@@ -133,7 +138,6 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           ],
         ),
       ),
-      floatingActionButton: fab,
     );
   }
 }
