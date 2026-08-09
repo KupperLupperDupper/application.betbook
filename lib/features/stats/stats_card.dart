@@ -227,12 +227,20 @@ class _LineChartBox extends StatelessWidget {
     final labelStyle = theme.textTheme.bodySmall
         ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
 
+    // Pad the x-axis a touch so the first/last date labels aren't clipped at
+    // the chart edges, and place labels on whole-index ticks.
+    final lastIndex = (series.length - 1).toDouble();
+    final xPad = math.max(lastIndex * 0.04, 0.2);
+    final xInterval = math.max((lastIndex / 3).ceilToDouble(), 1.0);
+
     return SizedBox(
       height: 180,
       child: LineChart(
         LineChartData(
           minY: minY,
           maxY: maxY,
+          minX: -xPad,
+          maxX: lastIndex + xPad,
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
@@ -251,8 +259,12 @@ class _LineChartBox extends StatelessWidget {
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 26,
-                interval: math.max((series.length - 1) / 2, 1).toDouble(),
+                interval: xInterval,
                 getTitlesWidget: (value, meta) {
+                  // Only label whole-index ticks that map to a real point.
+                  if ((value - value.roundToDouble()).abs() > 0.02) {
+                    return const SizedBox();
+                  }
                   final i = value.round();
                   if (i < 0 || i >= series.length) return const SizedBox();
                   return SideTitleWidget(
