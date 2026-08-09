@@ -2,17 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../app/routes.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money_format.dart';
-import '../../core/utils/date_format.dart';
+import '../../data/database/database.dart';
 import '../../data/models/enums.dart';
+import '../../l10n/app_localizations.dart';
 import '../../l10n/l10n_ext.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
 
+/// Full-screen route for creating or editing a transaction. The amount is
+/// entered exclusively through a custom on-screen keypad — the OS keyboard is
+/// never summoned for it (only the optional note uses the system keyboard).
 class EditTransactionScreen extends ConsumerStatefulWidget {
   const EditTransactionScreen({
     super.key,
@@ -32,9 +37,11 @@ class EditTransactionScreen extends ConsumerStatefulWidget {
 
 class _EditTransactionScreenState
     extends ConsumerState<EditTransactionScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _amountController = TextEditingController();
   final _noteController = TextEditingController();
+
+  /// Canonical raw amount: digits with an optional single `.` separator,
+  /// e.g. `"500"`, `"12.5"`, `"12."`. Never touched by a controller.
+  String _raw = '';
 
   TransactionType _type = TransactionType.deposit;
   String? _siteId;
@@ -50,36 +57,182 @@ class _EditTransactionScreenState
 
   @override
   void dispose() {
-    _amountController.dispose();
     _noteController.dispose();
     super.dispose();
   }
 
-  int? _parseAmountMinor() {
-    final raw = _amountController.text.trim().replaceAll(',', '.');
-    final value = double.tryParse(raw);
-    if (value == null || value <= 0) return null;
-    return majorToMinor(value);
+  // ── Amount model ─────────────────────────────────────────────────────────
+
+  /// The parsed value, or null when empty / not a number.
+  double? get _amountValue {
+    if (_raw.isEmpty) return null;
+    var s = _raw;
+    if (s.endsWith('.')) s = s.substring(0, s.length - 1);
+    if (s.isEmpty) return null;
+    return double.tryParse(s);
   }
 
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+  bool get _canSave {
+    final v = _amountValue;
+    return v != null && v > 0 && _siteId != null && !_saving;
+  }
+
+  /// Builds a canonical raw string (`.` separator, trailing zeros stripped)
+  /// from a major-unit value, for prefilling when editing.
+  String _rawFromMajor(double value) {
+    var s = value.toStringAsFixed(2);
+    if (s.contains('.')) {
+      s = s.replaceAll(RegExp(r'0+$'), '');
+      s = s.replaceAll(RegExp(r'\.$'), '');
+    }
+    return s;
+  }
+
+  String _decimalSeparator(String locale) =>
+      NumberFormat.decimalPattern(locale).symbols.DECIMAL_SEP;
+
+  /// Renders [_raw] with the locale's grouping and decimal separator, keeping
+  /// partially-typed values (e.g. `"12."`) natural.
+  String _displayAmount(String locale) {
+    if (_raw.isEmpty) return '0';
+    final decSep = _decimalSeparator(locale);
+    final parts = _raw.split('.');
+    final intText = parts[0].isEmpty ? '0' : parts[0];
+    final grouped =
+        NumberFormat.decimalPattern(locale).format(int.tryParse(intText) ?? 0);
+    if (parts.length == 1) return grouped;
+    return '$grouped$decSep${parts[1]}';
+  }
+
+  void _onKeyTap(String key) {
+    HapticFeedback.lightImpact();
+    final next = _nextRaw(key);
+    if (next == _raw) return;
+    setState(() => _raw = next);
+  }
+
+  /// Pure transition for a keypad tap. Enforces: at most one decimal
+  /// separator, at most two fractional digits, and no leading zero runs.
+  String _nextRaw(String key) {
+    if (key == 'back') {
+      return _raw.isEmpty ? _raw : _raw.substring(0, _raw.length - 1);
+    }
+    if (key == 'dot') {
+      if (_raw.contains('.')) return _raw;
+      return _raw.isEmpty ? '0.' : '$_raw.';
+    }
+    // A digit.
+    if (_raw.contains('.')) {
+      final fraction = _raw.split('.')[1];
+      if (fraction.length >= 2) return _raw;
+      return '$_raw$key';
+    }
+    if (_raw == '0') {
+      // Replace a lone leading zero; ignore additional zeros.
+      return key == '0' ? _raw : key;
+    }
+    return '$_raw$key';
+  }
+
+  // ── Actions ──────────────────────────────────────────────────────────────
+
+  Future<void> _pickDateTime() async {
+    final date = await showDatePicker(
       context: context,
       initialDate: _date,
       firstDate: DateTime(2000),
       lastDate: DateTime.now().add(const Duration(days: 1)),
     );
-    if (picked != null) {
-      setState(() => _date =
-          DateTime(picked.year, picked.month, picked.day, _date.hour, _date.minute));
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_date),
+    );
+    if (!mounted) return;
+    setState(() {
+      _date = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time?.hour ?? _date.hour,
+        time?.minute ?? _date.minute,
+      );
+    });
+  }
+
+  Future<void> _openSiteSheet(List<Site> sites) async {
+    final l10n = context.l10n;
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.add_rounded),
+                title: Text(l10n.siteAdd),
+                onTap: () {
+                  sheetContext.pop();
+                  context.push(Routes.newSite);
+                },
+              ),
+              const Divider(height: 1),
+              for (final site in sites)
+                ListTile(
+                  leading: _SiteAvatar(site: site),
+                  title: Text(site.name),
+                  trailing: site.id == _siteId
+                      ? Icon(
+                          Icons.check_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                        )
+                      : null,
+                  onTap: () => sheetContext.pop(site.id),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected != null && mounted) {
+      setState(() => _siteId = selected);
     }
   }
 
+  Future<void> _confirmDelete() async {
+    final l10n = context.l10n;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.txDelete),
+        content: Text(l10n.txDeleteConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => dialogContext.pop(false),
+            child: Text(l10n.actionCancel),
+          ),
+          FilledButton(
+            onPressed: () => dialogContext.pop(true),
+            child: Text(l10n.actionDelete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await ref
+        .read(transactionRepositoryProvider)
+        .deleteTransaction(widget.transactionId!);
+    if (mounted) context.pop();
+  }
+
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_siteId == null) return;
-    final minor = _parseAmountMinor()!;
+    final value = _amountValue;
+    if (value == null || value <= 0 || _siteId == null) return;
     setState(() => _saving = true);
+    final minor = majorToMinor(value);
+    final note = _noteController.text.trim();
     final repo = ref.read(transactionRepositoryProvider);
     if (widget.isEditing) {
       await repo.updateTransaction(
@@ -88,7 +241,7 @@ class _EditTransactionScreenState
         type: _type,
         amountMinor: minor,
         date: _date,
-        note: _noteController.text,
+        note: note.isEmpty ? null : note,
       );
     } else {
       await repo.createTransaction(
@@ -96,17 +249,19 @@ class _EditTransactionScreenState
         type: _type,
         amountMinor: minor,
         date: _date,
-        note: _noteController.text,
+        note: note.isEmpty ? null : note,
       );
     }
     if (mounted) context.pop();
   }
 
+  // ── Build ────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final locale = ref.watch(settingsProvider.select((s) => s.languageCode));
-    final sites = ref.watch(sitesProvider).valueOrNull ?? const [];
+    final sites = ref.watch(sitesProvider).valueOrNull ?? const <Site>[];
 
     // Prefill once when editing an existing transaction.
     if (widget.isEditing && !_initialized) {
@@ -119,7 +274,7 @@ class _EditTransactionScreenState
         _type = tx.type;
         _siteId = tx.siteId;
         _date = tx.date;
-        _amountController.text = minorToMajor(tx.amountMinor).toString();
+        _raw = _rawFromMajor(minorToMajor(tx.amountMinor));
         _noteController.text = tx.note ?? '';
         _initialized = true;
       }
@@ -127,7 +282,13 @@ class _EditTransactionScreenState
 
     if (sites.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.txAdd)),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => context.pop(),
+          ),
+          title: Text(l10n.txAdd),
+        ),
         body: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -149,114 +310,338 @@ class _EditTransactionScreenState
       );
     }
 
-    // Ensure a valid selected site.
+    // Ensure a valid selected site so the display always has a currency.
     _siteId ??= sites.first.id;
-    final selectedSite = sites.firstWhere(
+    final site = sites.firstWhere(
       (s) => s.id == _siteId,
       orElse: () => sites.first,
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.isEditing ? l10n.txEdit : l10n.txAdd)),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(widget.isEditing ? l10n.txEdit : l10n.txAdd),
+        actions: [
+          if (widget.isEditing)
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded),
+              onPressed: _confirmDelete,
+            ),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
           children: [
-            SegmentedButton<TransactionType>(
-              segments: [
-                ButtonSegment(
-                  value: TransactionType.deposit,
-                  label: Text(l10n.txTypeDeposit),
-                  icon: const Icon(Icons.south_west_rounded),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Column(
+                  children: [
+                    _typeToggle(l10n),
+                    const SizedBox(height: 24),
+                    _amountDisplay(l10n, locale, site),
+                    const SizedBox(height: 24),
+                    _siteSelector(l10n, site, sites),
+                    const SizedBox(height: 12),
+                    _dateRow(l10n, locale),
+                    const SizedBox(height: 12),
+                    _noteField(l10n),
+                  ],
                 ),
-                ButtonSegment(
-                  value: TransactionType.withdrawal,
-                  label: Text(l10n.txTypeWithdrawal),
-                  icon: const Icon(Icons.north_east_rounded),
+              ),
+            ),
+            _Keypad(
+              decimalSeparator: _decimalSeparator(locale),
+              onTap: _onKeyTap,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _canSave ? _save : null,
+                  child: _saving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(l10n.txSaveTransaction),
                 ),
-              ],
-              selected: {_type},
-              onSelectionChanged: (s) => setState(() => _type = s.first),
-            ),
-            const SizedBox(height: 24),
-            TextFormField(
-              controller: _amountController,
-              autofocus: !widget.isEditing,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-              ],
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
-              decoration: InputDecoration(
-                labelText: l10n.txAmount,
-                prefixText: '${currencySymbolFor(selectedSite.currencyCode)} ',
               ),
-              validator: (_) =>
-                  _parseAmountMinor() == null ? l10n.txAmountError : null,
-            ),
-            const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              initialValue: _siteId,
-              decoration: InputDecoration(labelText: l10n.txSite),
-              items: [
-                for (final s in sites)
-                  DropdownMenuItem(
-                    value: s.id,
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: Color(s.colorValue),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(s.name),
-                      ],
-                    ),
-                  ),
-              ],
-              onChanged: (v) => setState(() => _siteId = v),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              onTap: _pickDate,
-              leading: const Icon(Icons.calendar_today_rounded),
-              title: Text(l10n.txDate),
-              trailing: Text(
-                formatDate(_date, locale),
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _noteController,
-              decoration: InputDecoration(
-                labelText: l10n.txNote,
-                hintText: l10n.txNoteHint,
-              ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 28),
-            FilledButton(
-              onPressed: _saving ? null : _save,
-              child: _saving
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l10n.actionSave),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _typeToggle(AppLocalizations l10n) {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: SegmentedButton<TransactionType>(
+        segments: [
+          ButtonSegment(
+            value: TransactionType.deposit,
+            label: Text(l10n.txTypeDeposit),
+            icon: const Icon(Icons.arrow_downward_rounded),
+          ),
+          ButtonSegment(
+            value: TransactionType.withdrawal,
+            label: Text(l10n.txTypeWithdrawal),
+            icon: const Icon(Icons.arrow_upward_rounded),
+          ),
+        ],
+        selected: {_type},
+        onSelectionChanged: (s) => setState(() => _type = s.first),
+      ),
+    );
+  }
+
+  Widget _amountDisplay(AppLocalizations l10n, String locale, Site site) {
+    final theme = Theme.of(context);
+    final value = _amountValue;
+    final isValid = value != null && value > 0;
+    final numberColor = isValid
+        ? theme.colorScheme.onSurface
+        : theme.colorScheme.onSurfaceVariant;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {},
+      child: Column(
+        children: [
+          Text(
+            l10n.txAmount.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: theme.colorScheme.primary, width: 2),
+              ),
+            ),
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  _displayAmount(locale),
+                  style: TextStyle(
+                    fontSize: 52,
+                    fontWeight: FontWeight.w800,
+                    color: numberColor,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  currencySymbolFor(site.currencyCode),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _siteSelector(AppLocalizations l10n, Site site, List<Site> sites) {
+    final theme = Theme.of(context);
+    return _BorderedRow(
+      onTap: () => _openSiteSheet(sites),
+      child: Row(
+        children: [
+          _SiteAvatar(site: site),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.txSite,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                Text(
+                  site.name,
+                  style: theme.textTheme.bodyLarge,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.expand_more_rounded,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dateRow(AppLocalizations l10n, String locale) {
+    final theme = Theme.of(context);
+    return _BorderedRow(
+      onTap: _pickDateTime,
+      child: Row(
+        children: [
+          Icon(
+            Icons.calendar_today_rounded,
+            size: 20,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              l10n.txDate,
+              style: theme.textTheme.bodyLarge,
+            ),
+          ),
+          Text(
+            DateFormat('d MMM yyyy · HH:mm', locale).format(_date),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _noteField(AppLocalizations l10n) {
+    return TextFormField(
+      controller: _noteController,
+      maxLines: 2,
+      decoration: InputDecoration(
+        labelText: l10n.txNote,
+        hintText: l10n.txNoteHint,
+        border: const OutlineInputBorder(),
+      ),
+    );
+  }
+}
+
+/// A small colored rounded-square avatar showing the site's initial in white.
+class _SiteAvatar extends StatelessWidget {
+  const _SiteAvatar({required this.site});
+
+  final Site site;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial =
+        site.name.isNotEmpty ? site.name.characters.first.toUpperCase() : '?';
+    return Container(
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Color(site.colorValue),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+/// An outlined, tappable row used for the site and date selectors.
+class _BorderedRow extends StatelessWidget {
+  const _BorderedRow({required this.child, required this.onTap});
+
+  final Widget child;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: theme.colorScheme.outline),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// The custom numeric keypad. Emits `'0'..'9'`, `'dot'`, and `'back'`.
+class _Keypad extends StatelessWidget {
+  const _Keypad({required this.decimalSeparator, required this.onTap});
+
+  final String decimalSeparator;
+  final void Function(String key) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const rows = [
+      ['1', '2', '3'],
+      ['4', '5', '6'],
+      ['7', '8', '9'],
+      ['dot', '0', 'back'],
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final row in rows)
+            Row(
+              children: [
+                for (final key in row)
+                  Expanded(child: _buildKey(context, key)),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKey(BuildContext context, String key) {
+    final theme = Theme.of(context);
+    Widget label;
+    if (key == 'back') {
+      label = const Icon(Icons.backspace_outlined);
+    } else if (key == 'dot') {
+      label = Text(decimalSeparator, style: theme.textTheme.titleLarge);
+    } else {
+      label = Text(key, style: theme.textTheme.titleLarge);
+    }
+    return Padding(
+      padding: const EdgeInsets.all(4),
+      child: SizedBox(
+        height: 56,
+        child: InkWell(
+          onTap: () => onTap(key),
+          borderRadius: BorderRadius.circular(14),
+          child: Center(child: label),
         ),
       ),
     );

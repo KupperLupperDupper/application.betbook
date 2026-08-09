@@ -6,6 +6,7 @@ import '../../app/routes.dart';
 import '../../core/money/currency.dart';
 import '../../l10n/l10n_ext.dart';
 import '../../providers/settings_providers.dart';
+import '../../widgets/suit_marks.dart';
 import '../settings/widgets/theme_mode_selector.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -118,13 +119,11 @@ class _Dots extends StatelessWidget {
 
 class _StepScaffold extends StatelessWidget {
   const _StepScaffold({
-    required this.icon,
     required this.title,
     this.subtitle,
     required this.child,
   });
 
-  final IconData icon;
   final String title;
   final String? subtitle;
   final Widget child;
@@ -138,10 +137,13 @@ class _StepScaffold extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 12),
-          Icon(icon, size: 56, color: theme.colorScheme.primary),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: BrandMark(size: 56),
+          ),
           const SizedBox(height: 24),
           Text(title,
-              style: theme.textTheme.headlineSmall
+              style: theme.textTheme.headlineMedium
                   ?.copyWith(fontWeight: FontWeight.w700)),
           if (subtitle != null) ...[
             const SizedBox(height: 12),
@@ -163,7 +165,6 @@ class _WelcomeStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return _StepScaffold(
-      icon: Icons.account_balance_wallet_rounded,
       title: l10n.onboardingWelcomeTitle,
       subtitle: l10n.onboardingWelcomeBody,
       child: const SizedBox.shrink(),
@@ -178,7 +179,6 @@ class _LanguageStep extends ConsumerWidget {
     final l10n = context.l10n;
     final current = ref.watch(settingsProvider.select((s) => s.languageCode));
     return _StepScaffold(
-      icon: Icons.translate_rounded,
       title: l10n.onboardingLanguageTitle,
       child: Column(
         children: [
@@ -207,7 +207,6 @@ class _ThemeStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return _StepScaffold(
-      icon: Icons.palette_rounded,
       title: l10n.onboardingThemeTitle,
       child: const ThemeModeSelector(),
     );
@@ -221,7 +220,6 @@ class _CurrencyStep extends ConsumerWidget {
     final l10n = context.l10n;
     final current = ref.watch(settingsProvider.select((s) => s.baseCurrency));
     return _StepScaffold(
-      icon: Icons.payments_rounded,
       title: l10n.onboardingCurrencyTitle,
       subtitle: l10n.onboardingCurrencyBody,
       child: Column(

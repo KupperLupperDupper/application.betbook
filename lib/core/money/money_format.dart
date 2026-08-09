@@ -51,6 +51,46 @@ String formatMajor(
   return magnitude;
 }
 
+/// Like [formatMajor] but drops the decimals when the value is whole (the
+/// design shows `−4.310 kr`, not `−4.310,00 kr`), keeping 2 decimals otherwise.
+String formatMajorSmart(
+  double value,
+  String currencyCode, {
+  required String localeName,
+  bool withSign = false,
+}) {
+  final isWhole = value == value.roundToDouble();
+  final format = NumberFormat.currency(
+    locale: localeName,
+    symbol: currencySymbolFor(currencyCode),
+    decimalDigits: isWhole ? 0 : 2,
+  );
+  if (!withSign) return format.format(value);
+  final magnitude = format.format(value.abs());
+  if (value > 0) return '+$magnitude';
+  if (value < 0) return '−$magnitude';
+  return magnitude;
+}
+
+/// Formats a [minor] amount with locale grouping but NO currency symbol,
+/// dropping a trailing `,00`. Used in list rows where a currency chip already
+/// carries the code (matches the design's compact net figures).
+String formatMinorPlain(
+  int minor, {
+  required String localeName,
+  bool withSign = false,
+}) {
+  final value = minorToMajor(minor);
+  final format = NumberFormat.decimalPattern(localeName)
+    ..minimumFractionDigits = 0
+    ..maximumFractionDigits = 2;
+  final magnitude = format.format(value.abs());
+  if (!withSign) return magnitude;
+  if (value > 0) return '+$magnitude';
+  if (value < 0) return '−$magnitude';
+  return magnitude;
+}
+
 /// A compact, symbol-only amount (no grouping fuss) for dense chart labels.
 String formatCompactMajor(
   double value,

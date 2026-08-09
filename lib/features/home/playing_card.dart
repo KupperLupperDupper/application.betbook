@@ -1,118 +1,91 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/suit_icon.dart';
+
 /// The four playing-card suits used as section identity/markers.
-enum CardSuit {
-  spade('♠'),
-  heart('♥'),
-  diamond('♦'),
-  club('♣');
+/// Deck order matches the design: Dashboard ♠ · Sites ♥ · Stats ♦ · Settings ♣.
+/// Deck order matches the design: Dashboard ♠ · Sites ♥ · Stats ♦ · Settings ♣.
+/// Suits are drawn as vector paths (see [SuitIcon]) — never Unicode glyphs,
+/// which many devices force to red emoji.
+enum CardSuit { spade, heart, diamond, club }
 
-  const CardSuit(this.glyph);
-  final String glyph;
-
-  /// Traditional colouring: hearts/diamonds red, spades/clubs ink.
-  Color accent(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isRed = this == CardSuit.heart || this == CardSuit.diamond;
-    return isRed ? const Color(0xFFD5384B) : scheme.onSurface;
-  }
-}
-
-/// A section presented as a playing card: rounded, softly elevated, with the
-/// title + suit marked in opposite corners like a real card.
+/// A deck section presented as a printed playing card: full-bleed, hairline
+/// edge, a quiet corner pip (the suit) and a small uppercase section label —
+/// never a literal poker card. The card owns its section's scrolling content.
 class PlayingCard extends StatelessWidget {
   const PlayingCard({
     super.key,
     required this.suit,
-    required this.title,
+    required this.label,
+    this.subtitle,
     required this.child,
   });
 
   final CardSuit suit;
-  final String title;
+  final String label;
+  final String? subtitle;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final accent = suit.accent(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      padding: const EdgeInsets.only(top: 6, bottom: 12, left: 6, right: 6),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: scheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          border: Border.all(color: scheme.outlineVariant),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
-          child: Stack(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Bottom-right corner marker (rotated, like a real card).
-              Positioned(
-                right: 16,
-                bottom: 16,
-                child: Transform.rotate(
-                  angle: 3.14159,
-                  child: _CornerMark(suit: suit, accent: accent),
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-                    child: Row(
-                      children: [
-                        _CornerMark(suit: suit, accent: accent),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: theme.textTheme.headlineSmall?.copyWith(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 22, 18, 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            label.toUpperCase(),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              letterSpacing: 1.2,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ),
-                      ],
+                          if (subtitle != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle!,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
-                  Expanded(child: child),
-                ],
+                    // Quiet corner pip.
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: SuitIcon(suit: suit, color: scheme.outline, size: 16),
+                    ),
+                  ],
+                ),
               ),
+              Expanded(child: child),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _CornerMark extends StatelessWidget {
-  const _CornerMark({required this.suit, required this.accent});
-  final CardSuit suit;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          suit.glyph,
-          style: TextStyle(fontSize: 22, height: 1, color: accent),
-        ),
-      ],
     );
   }
 }

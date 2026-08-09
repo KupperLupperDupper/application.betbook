@@ -68,6 +68,28 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   drift_dev: ^2.34.5
   build_runner: ^2.15.1
+  flutter_launcher_icons: 0.14.0
+  flutter_native_splash: ^2.4.8
+
+# App launcher icon: the 2×2 suit brand mark on the Slate-Blue squircle.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#3B5F9E"
+  adaptive_icon_foreground: "assets/icon/foreground.png"
+  min_sdk_android: 23
+  remove_alpha_ios: true
+
+# Splash screen: white suits centred on the Slate-Blue brand colour.
+flutter_native_splash:
+  color: "#3B5F9E"
+  image: assets/icon/foreground.png
+  android_12:
+    color: "#3B5F9E"
+    image: assets/icon/foreground.png
+  android: true
+  ios: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -1,53 +1,47 @@
 import 'package:flutter/material.dart';
 
-/// A centred illustration + title + body, with an optional primary action.
-/// Used for the "no sites / no data yet" screens.
+import 'suit_marks.dart';
+
+/// The design's empty state: a 2×2 suit mark, a headline, one supportive
+/// sentence, a single filled primary action, and an optional footnote line
+/// (e.g. the on-device privacy reassurance).
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
-    required this.icon,
     required this.title,
     required this.message,
     this.actionLabel,
     this.onAction,
+    this.footnote,
   });
 
-  final IconData icon;
   final String title;
   final String message;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final String? footnote;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon,
-                  size: 40, color: theme.colorScheme.onPrimaryContainer),
-            ),
+            const SuitGlyphMark(size: 64),
             const SizedBox(height: 24),
             Text(
               title,
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: theme.textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               message,
-              style: theme.textTheme.bodyMedium
+              style: theme.textTheme.bodyLarge
                   ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
@@ -57,6 +51,22 @@ class EmptyState extends StatelessWidget {
                 onPressed: onAction,
                 icon: const Icon(Icons.add_rounded),
                 label: Text(actionLabel!),
+              ),
+            ],
+            if (footnote != null) ...[
+              const SizedBox(height: 16),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.lock_outline_rounded,
+                      size: 14, color: theme.colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 6),
+                  Text(
+                    footnote!,
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                ],
               ),
             ],
           ],

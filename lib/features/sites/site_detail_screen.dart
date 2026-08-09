@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../app/routes.dart';
 import '../../core/money/money_format.dart';
+import '../../core/theme/money_colors.dart';
 import '../../core/utils/date_format.dart';
 import '../../data/database/database.dart';
 import '../../data/models/enums.dart';
@@ -11,12 +13,44 @@ import '../../l10n/l10n_ext.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
-import '../../widgets/net_text.dart';
+import '../../widgets/empty_state.dart';
 
 class SiteDetailScreen extends ConsumerWidget {
   const SiteDetailScreen({super.key, required this.siteId});
 
   final String siteId;
+
+  Future<void> _confirmDeleteSite(
+    BuildContext context,
+    WidgetRef ref,
+    Site site,
+  ) async {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.siteDelete),
+        content: Text(l10n.siteDeleteConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.actionCancel),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.actionDelete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(siteRepositoryProvider).deleteSite(site.id);
+    if (context.mounted) context.go(Routes.home);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,14 +72,25 @@ class SiteDetailScreen extends ConsumerWidget {
           });
           return const Scaffold();
         }
+
         final txs = txAsync.valueOrNull ?? const <Transaction>[];
-        final deposited = txs
+        final depositedMinor = txs
             .where((t) => t.type == TransactionType.deposit)
             .fold<int>(0, (s, t) => s + t.amountMinor);
-        final withdrawn = txs
+        final withdrawnMinor = txs
             .where((t) => t.type == TransactionType.withdrawal)
             .fold<int>(0, (s, t) => s + t.amountMinor);
-        final net = withdrawn - deposited;
+        final net = withdrawnMinor - depositedMinor;
+
+        // Running net (withdrawals − deposits), accumulated oldest → newest.
+        final runningNet = <String, int>{};
+        var cumulative = 0;
+        for (final tx in txs.reversed) {
+          cumulative += tx.type == TransactionType.withdrawal
+              ? tx.amountMinor
+              : -tx.amountMinor;
+          runningNet[tx.id] = cumulative;
+        }
 
         return Scaffold(
           appBar: AppBar(
@@ -55,6 +100,11 @@ class SiteDetailScreen extends ConsumerWidget {
                 icon: const Icon(Icons.edit_outlined),
                 onPressed: () => context.push(Routes.editSite(site.id)),
               ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded),
+                color: Theme.of(context).colorScheme.error,
+                onPressed: () => _confirmDeleteSite(context, ref, site),
+              ),
             ],
           ),
           floatingActionButton: FloatingActionButton.extended(
@@ -63,102 +113,143 @@ class SiteDetailScreen extends ConsumerWidget {
             icon: const Icon(Icons.add_rounded),
             label: Text(l10n.txAdd),
           ),
-          body: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            children: [
-              _SiteHeader(
-                site: site,
-                netMinor: net,
-                depositedMinor: deposited,
-                withdrawnMinor: withdrawn,
-                localeName: locale,
-              ),
-              const SizedBox(height: 16),
-              if (txs.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 48),
-                  child: Center(
-                    child: Text(
-                      l10n.siteEmptyTransactions,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
+          body: txs.isEmpty
+              ? EmptyState(
+                  title: l10n.siteDetailEmptyTitle,
+                  message: l10n.siteDetailEmptyBody,
+                  actionLabel: l10n.txAdd,
+                  onAction: () => context
+                      .push('${Routes.newTransaction}?siteId=${site.id}'),
                 )
-              else
-                for (final tx in txs)
-                  _TransactionTile(
-                    tx: tx,
-                    currencyCode: site.currencyCode,
-                    localeName: locale,
-                    onTap: () => context.push(Routes.editTransaction(tx.id)),
-                    onDelete: () =>
-                        ref.read(transactionRepositoryProvider).deleteTransaction(tx.id),
-                  ),
-            ],
-          ),
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                  children: [
+                    _HeroCard(
+                      site: site,
+                      netMinor: net,
+                      depositedMinor: depositedMinor,
+                      withdrawnMinor: withdrawnMinor,
+                      locale: locale,
+                    ),
+                    const SizedBox(height: 16),
+                    ..._buildTransactionSlivers(
+                      context: context,
+                      ref: ref,
+                      txs: txs,
+                      runningNet: runningNet,
+                      locale: locale,
+                    ),
+                  ],
+                ),
         );
       },
     );
   }
+
+  /// Groups [txs] (already newest-first) by month and returns header +
+  /// row widgets in display order.
+  List<Widget> _buildTransactionSlivers({
+    required BuildContext context,
+    required WidgetRef ref,
+    required List<Transaction> txs,
+    required Map<String, int> runningNet,
+    required String locale,
+  }) {
+    final widgets = <Widget>[];
+    String? currentKey;
+    for (final tx in txs) {
+      final key = '${tx.date.year}-${tx.date.month}';
+      if (key != currentKey) {
+        currentKey = key;
+        widgets.add(_MonthHeader(date: tx.date, locale: locale));
+      }
+      widgets.add(
+        _TransactionRow(
+          tx: tx,
+          locale: locale,
+          runningNet: runningNet[tx.id] ?? 0,
+          onTap: () => context.push(Routes.editTransaction(tx.id)),
+          onDelete: () => ref
+              .read(transactionRepositoryProvider)
+              .deleteTransaction(tx.id),
+        ),
+      );
+    }
+    return widgets;
+  }
 }
 
-class _SiteHeader extends StatelessWidget {
-  const _SiteHeader({
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({
     required this.site,
     required this.netMinor,
     required this.depositedMinor,
     required this.withdrawnMinor,
-    required this.localeName,
+    required this.locale,
   });
 
   final Site site;
   final int netMinor;
   final int depositedMinor;
   final int withdrawnMinor;
-  final String localeName;
+  final String locale;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final netColor = context.money.forAmount(netMinor);
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Color(site.colorValue).withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(20),
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.siteNet,
-              style: theme.textTheme.labelLarge
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          const SizedBox(height: 4),
-          NetText(
-            value: netMinor,
-            text: formatMinor(netMinor, site.currencyCode,
-                localeName: localeName, withSign: true),
-            style: theme.textTheme.headlineMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
-            iconSize: 26,
+          Row(
+            children: [
+              Icon(
+                context.money.iconForAmount(netMinor),
+                color: netColor,
+                size: 26,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  formatMinor(netMinor, site.currencyCode,
+                      localeName: locale, withSign: true),
+                  style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    color: netColor,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
-                child: _MiniStat(
+                child: _HeroStat(
                   label: l10n.dashboardTotalDeposited,
-                  value: formatMinor(depositedMinor, site.currencyCode,
-                      localeName: localeName),
+                  value: formatMinorPlain(depositedMinor, localeName: locale),
                 ),
               ),
               Expanded(
-                child: _MiniStat(
+                child: _HeroStat(
                   label: l10n.dashboardTotalWithdrawn,
-                  value: formatMinor(withdrawnMinor, site.currencyCode,
-                      localeName: localeName),
+                  value: formatMinorPlain(withdrawnMinor, localeName: locale),
+                ),
+              ),
+              Expanded(
+                child: _HeroStat(
+                  label: l10n.commonCurrency,
+                  value: site.currencyCode,
                 ),
               ),
             ],
@@ -169,8 +260,9 @@ class _SiteHeader extends StatelessWidget {
   }
 }
 
-class _MiniStat extends StatelessWidget {
-  const _MiniStat({required this.label, required this.value});
+class _HeroStat extends StatelessWidget {
+  const _HeroStat({required this.label, required this.value});
+
   final String label;
   final String value;
 
@@ -180,30 +272,57 @@ class _MiniStat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        Text(
+          label.toUpperCase(),
+          style: theme.textTheme.labelMedium
+              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
         const SizedBox(height: 2),
-        Text(value,
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w700)),
+        Text(
+          value,
+          style: theme.textTheme.titleMedium
+              ?.copyWith(color: theme.colorScheme.onSurface),
+        ),
       ],
     );
   }
 }
 
-class _TransactionTile extends StatelessWidget {
-  const _TransactionTile({
+class _MonthHeader extends StatelessWidget {
+  const _MonthHeader({required this.date, required this.locale});
+
+  final DateTime date;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final raw = formatMonth(date, locale);
+    final label =
+        raw.isEmpty ? raw : '${raw[0].toUpperCase()}${raw.substring(1)}';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
+      child: Text(
+        label,
+        style: theme.textTheme.titleSmall
+            ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      ),
+    );
+  }
+}
+
+class _TransactionRow extends StatelessWidget {
+  const _TransactionRow({
     required this.tx,
-    required this.currencyCode,
-    required this.localeName,
+    required this.locale,
+    required this.runningNet,
     required this.onTap,
     required this.onDelete,
   });
 
   final Transaction tx;
-  final String currencyCode;
-  final String localeName;
+  final String locale;
+  final int runningNet;
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
@@ -211,8 +330,20 @@ class _TransactionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final money = context.money;
     final isDeposit = tx.type == TransactionType.deposit;
-    final signed = isDeposit ? -tx.amountMinor : tx.amountMinor;
+
+    final dateTime = DateFormat('d MMM · HH:mm', locale).format(tx.date);
+    final subtitle = [
+      dateTime,
+      if (tx.note != null && tx.note!.isNotEmpty) tx.note!,
+    ].join(' · ');
+
+    final signedAmount = formatMinorPlain(
+      isDeposit ? -tx.amountMinor : tx.amountMinor,
+      localeName: locale,
+      withSign: true,
+    );
 
     return Dismissible(
       key: ValueKey(tx.id),
@@ -225,8 +356,10 @@ class _TransactionTile extends StatelessWidget {
           color: theme.colorScheme.errorContainer,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Icon(Icons.delete_rounded,
-            color: theme.colorScheme.onErrorContainer),
+        child: Icon(
+          Icons.delete_rounded,
+          color: theme.colorScheme.onErrorContainer,
+        ),
       ),
       confirmDismiss: (_) async {
         return await showDialog<bool>(
@@ -239,9 +372,9 @@ class _TransactionTile extends StatelessWidget {
                     onPressed: () => Navigator.pop(ctx, false),
                     child: Text(l10n.actionCancel),
                   ),
-                  FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: theme.colorScheme.error,
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
                     ),
                     onPressed: () => Navigator.pop(ctx, true),
                     child: Text(l10n.actionDelete),
@@ -252,34 +385,51 @@ class _TransactionTile extends StatelessWidget {
             false;
       },
       onDismissed: (_) => onDelete(),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        leading: CircleAvatar(
-          backgroundColor: (isDeposit
-                  ? theme.colorScheme.errorContainer
-                  : theme.colorScheme.primaryContainer)
-              .withValues(alpha: 0.6),
-          child: Icon(
-            isDeposit ? Icons.south_west_rounded : Icons.north_east_rounded,
-            size: 20,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 64),
+        child: ListTile(
+          onTap: onTap,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+          leading: CircleAvatar(
+            radius: 20,
+            backgroundColor:
+                isDeposit ? money.lossContainer : money.profitContainer,
+            child: Icon(
+              isDeposit
+                  ? Icons.arrow_downward_rounded
+                  : Icons.arrow_upward_rounded,
+              size: 20,
+              color:
+                  isDeposit ? money.onLossContainer : money.onProfitContainer,
+            ),
           ),
-        ),
-        title: Text(isDeposit ? l10n.txTypeDeposit : l10n.txTypeWithdrawal),
-        subtitle: Text(
-          [
-            formatDate(tx.date, localeName),
-            if (tx.note != null && tx.note!.isNotEmpty) tx.note!,
-          ].join(' · '),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: NetText(
-          value: signed,
-          showIcon: false,
-          text: formatMinor(signed, currencyCode,
-              localeName: localeName, withSign: true),
-          style: theme.textTheme.titleSmall,
+          title: Text(isDeposit ? l10n.txTypeDeposit : l10n.txTypeWithdrawal),
+          subtitle: Text(
+            subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                signedAmount,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              Text(
+                l10n.txRunningNet(
+                  formatMinorPlain(runningNet,
+                      localeName: locale, withSign: true),
+                ),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ],
+          ),
         ),
       ),
     );

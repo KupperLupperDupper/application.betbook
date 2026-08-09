@@ -155,14 +155,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashboardSeeAll => 'See all';
 
   @override
-  String get dashboardEmptyTitle => 'No sites yet';
+  String get dashboardEmptyTitle => 'Nothing tracked yet';
 
   @override
   String get dashboardEmptyBody =>
-      'Add your first betting site to start tracking your profit and loss.';
+      'Add your first deposit or withdrawal and BetBook will show you, honestly, where you stand.';
 
   @override
   String get dashboardAddSite => 'Add a site';
+
+  @override
+  String get dashboardAllTime => 'All time';
+
+  @override
+  String get dashboardUpOverall => 'You\'re up overall';
+
+  @override
+  String get dashboardDownOverall => 'You\'re down overall';
+
+  @override
+  String get dashboardEvenOverall => 'You\'re breaking even';
+
+  @override
+  String get allDataOnDevice => 'All data stays on your device';
+
+  @override
+  String get sitesEmptyTitle => 'No sites yet';
+
+  @override
+  String get sitesEmptyBody =>
+      'Add the first site you play on, so you can track your deposits and withdrawals.';
+
+  @override
+  String get siteDetailEmptyTitle => 'No transactions here yet';
+
+  @override
+  String get siteDetailEmptyBody =>
+      'This site is set up. Add the first deposit or withdrawal to start the ledger.';
+
+  @override
+  String get commonCurrency => 'Currency';
+
+  @override
+  String get txSaveTransaction => 'Save transaction';
+
+  @override
+  String txRunningNet(String amount) {
+    return 'net $amount';
+  }
 
   @override
   String get sitesTitle => 'Sites';
@@ -194,6 +234,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get siteNet => 'Net';
+
+  @override
+  String sitesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sites',
+      one: '1 site',
+      zero: 'No sites',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get siteEmptyTransactions => 'No transactions yet';
@@ -424,6 +476,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lockUseBiometrics => 'Unlock with biometrics';
+
+  @override
+  String get lockInstruction => 'Use your fingerprint or enter your PIN';
 
   @override
   String get lockEnterPin => 'Enter your PIN';

@@ -389,13 +389,13 @@ abstract class AppLocalizations {
   /// No description provided for @dashboardEmptyTitle.
   ///
   /// In en, this message translates to:
-  /// **'No sites yet'**
+  /// **'Nothing tracked yet'**
   String get dashboardEmptyTitle;
 
   /// No description provided for @dashboardEmptyBody.
   ///
   /// In en, this message translates to:
-  /// **'Add your first betting site to start tracking your profit and loss.'**
+  /// **'Add your first deposit or withdrawal and BetBook will show you, honestly, where you stand.'**
   String get dashboardEmptyBody;
 
   /// No description provided for @dashboardAddSite.
@@ -403,6 +403,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add a site'**
   String get dashboardAddSite;
+
+  /// No description provided for @dashboardAllTime.
+  ///
+  /// In en, this message translates to:
+  /// **'All time'**
+  String get dashboardAllTime;
+
+  /// No description provided for @dashboardUpOverall.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re up overall'**
+  String get dashboardUpOverall;
+
+  /// No description provided for @dashboardDownOverall.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re down overall'**
+  String get dashboardDownOverall;
+
+  /// No description provided for @dashboardEvenOverall.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re breaking even'**
+  String get dashboardEvenOverall;
+
+  /// No description provided for @allDataOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'All data stays on your device'**
+  String get allDataOnDevice;
+
+  /// No description provided for @sitesEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No sites yet'**
+  String get sitesEmptyTitle;
+
+  /// No description provided for @sitesEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add the first site you play on, so you can track your deposits and withdrawals.'**
+  String get sitesEmptyBody;
+
+  /// No description provided for @siteDetailEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions here yet'**
+  String get siteDetailEmptyTitle;
+
+  /// No description provided for @siteDetailEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This site is set up. Add the first deposit or withdrawal to start the ledger.'**
+  String get siteDetailEmptyBody;
+
+  /// No description provided for @commonCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get commonCurrency;
+
+  /// No description provided for @txSaveTransaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Save transaction'**
+  String get txSaveTransaction;
+
+  /// No description provided for @txRunningNet.
+  ///
+  /// In en, this message translates to:
+  /// **'net {amount}'**
+  String txRunningNet(String amount);
 
   /// No description provided for @sitesTitle.
   ///
@@ -463,6 +535,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Net'**
   String get siteNet;
+
+  /// No description provided for @sitesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No sites} =1{1 site} other{{count} sites}}'**
+  String sitesCount(int count);
 
   /// No description provided for @siteEmptyTransactions.
   ///
@@ -877,6 +955,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unlock with biometrics'**
   String get lockUseBiometrics;
+
+  /// No description provided for @lockInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your fingerprint or enter your PIN'**
+  String get lockInstruction;
 
   /// No description provided for @lockEnterPin.
   ///

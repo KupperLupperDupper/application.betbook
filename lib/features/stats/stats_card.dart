@@ -1,7 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/routes.dart';
 import '../../core/money/money_format.dart';
 import '../../core/stats/summaries.dart';
 import '../../core/theme/money_colors.dart';
@@ -57,9 +59,10 @@ class _StatsCardState extends ConsumerState<StatsCard> {
 
     if (txs.length < 2) {
       return EmptyState(
-        icon: Icons.insights_rounded,
         title: l10n.statsNoData,
         message: l10n.statsNoDataBody,
+        actionLabel: l10n.txAdd,
+        onAction: () => context.push(Routes.newTransaction),
       );
     }
 

@@ -155,14 +155,54 @@ class AppLocalizationsDa extends AppLocalizations {
   String get dashboardSeeAll => 'Se alle';
 
   @override
-  String get dashboardEmptyTitle => 'Ingen sider endnu';
+  String get dashboardEmptyTitle => 'Intet registreret endnu';
 
   @override
   String get dashboardEmptyBody =>
-      'Tilføj din første spilside for at begynde at følge dit overskud og tab.';
+      'Tilføj din første ind- eller udbetaling, så viser BetBook dig ærligt, hvor du står.';
 
   @override
   String get dashboardAddSite => 'Tilføj en side';
+
+  @override
+  String get dashboardAllTime => 'Al tid';
+
+  @override
+  String get dashboardUpOverall => 'Du er i plus samlet set';
+
+  @override
+  String get dashboardDownOverall => 'Du er i minus samlet set';
+
+  @override
+  String get dashboardEvenOverall => 'Du går i nul';
+
+  @override
+  String get allDataOnDevice => 'Alle data bliver på din enhed';
+
+  @override
+  String get sitesEmptyTitle => 'Ingen spillesteder endnu';
+
+  @override
+  String get sitesEmptyBody =>
+      'Tilføj det første sted, du spiller på, så du kan følge dine ind- og udbetalinger.';
+
+  @override
+  String get siteDetailEmptyTitle => 'Ingen transaktioner her endnu';
+
+  @override
+  String get siteDetailEmptyBody =>
+      'Spillestedet er oprettet. Tilføj den første ind- eller udbetaling for at starte.';
+
+  @override
+  String get commonCurrency => 'Valuta';
+
+  @override
+  String get txSaveTransaction => 'Gem transaktion';
+
+  @override
+  String txRunningNet(String amount) {
+    return 'netto $amount';
+  }
 
   @override
   String get sitesTitle => 'Sider';
@@ -194,6 +234,18 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get siteNet => 'Netto';
+
+  @override
+  String sitesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count spillesteder',
+      one: '1 spillested',
+      zero: 'Ingen spillesteder',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get siteEmptyTransactions => 'Ingen transaktioner endnu';
@@ -423,6 +475,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get lockUseBiometrics => 'Lås op med biometri';
+
+  @override
+  String get lockInstruction => 'Brug fingeraftryk eller indtast din pinkode';
 
   @override
   String get lockEnterPin => 'Indtast din PIN';

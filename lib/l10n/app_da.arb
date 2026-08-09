@@ -55,9 +55,24 @@
   "dashboardProfitOverTime": "Udvikling over tid",
   "dashboardYourSites": "Dine sider",
   "dashboardSeeAll": "Se alle",
-  "dashboardEmptyTitle": "Ingen sider endnu",
-  "dashboardEmptyBody": "Tilføj din første spilside for at begynde at følge dit overskud og tab.",
+  "dashboardEmptyTitle": "Intet registreret endnu",
+  "dashboardEmptyBody": "Tilføj din første ind- eller udbetaling, så viser BetBook dig ærligt, hvor du står.",
   "dashboardAddSite": "Tilføj en side",
+  "dashboardAllTime": "Al tid",
+  "dashboardUpOverall": "Du er i plus samlet set",
+  "dashboardDownOverall": "Du er i minus samlet set",
+  "dashboardEvenOverall": "Du går i nul",
+  "allDataOnDevice": "Alle data bliver på din enhed",
+  "sitesEmptyTitle": "Ingen spillesteder endnu",
+  "sitesEmptyBody": "Tilføj det første sted, du spiller på, så du kan følge dine ind- og udbetalinger.",
+  "siteDetailEmptyTitle": "Ingen transaktioner her endnu",
+  "siteDetailEmptyBody": "Spillestedet er oprettet. Tilføj den første ind- eller udbetaling for at starte.",
+  "commonCurrency": "Valuta",
+  "txSaveTransaction": "Gem transaktion",
+  "txRunningNet": "netto {amount}",
+  "@txRunningNet": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
 
   "sitesTitle": "Sider",
   "siteAdd": "Tilføj side",
@@ -69,6 +84,10 @@
   "siteDelete": "Slet side",
   "siteDeleteConfirm": "Slet denne side og alle dens transaktioner? Dette kan ikke fortrydes.",
   "siteNet": "Netto",
+  "sitesCount": "{count, plural, =0{Ingen spillesteder} =1{1 spillested} other{{count} spillesteder}}",
+  "@sitesCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "siteEmptyTransactions": "Ingen transaktioner endnu",
   "siteTransactionCount": "{count, plural, =0{Ingen transaktioner} =1{1 transaktion} other{{count} transaktioner}}",
   "@siteTransactionCount": {
@@ -155,6 +174,7 @@
   "lockTitle": "BetBook er låst",
   "lockUnlock": "Lås op",
   "lockUseBiometrics": "Lås op med biometri",
+  "lockInstruction": "Brug fingeraftryk eller indtast din pinkode",
   "lockEnterPin": "Indtast din PIN",
   "lockSetPin": "Vælg en PIN",
   "lockConfirmPin": "Bekræft din PIN",

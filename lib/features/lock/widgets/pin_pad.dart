@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/theme/money_colors.dart';
+
 /// A reusable numeric PIN entry pad: a row of dots that fill as digits are
 /// entered, plus a 3×4 keypad. When [length] digits are reached [onCompleted]
 /// fires and the internal buffer clears, ready for another attempt.
@@ -11,6 +13,8 @@ class PinPad extends StatefulWidget {
     required this.onCompleted,
     this.title,
     this.errorText,
+    this.overrideFilled,
+    this.success = false,
   });
 
   final int length;
@@ -23,6 +27,13 @@ class PinPad extends StatefulWidget {
 
   /// Shown in the error color under the dots when non-null.
   final String? errorText;
+
+  /// When non-null, overrides how many dots are shown filled — used to drive
+  /// the biometric-success fill animation from outside.
+  final int? overrideFilled;
+
+  /// When true, filled dots turn to the success (profit) colour and pop.
+  final bool success;
 
   @override
   State<PinPad> createState() => _PinPadState();
@@ -72,7 +83,10 @@ class _PinPadState extends State<PinPad> {
             for (var i = 0; i < widget.length; i++)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: _Dot(filled: i < _pin.length),
+                child: _Dot(
+                  filled: i < (widget.overrideFilled ?? _pin.length),
+                  success: widget.success,
+                ),
               ),
           ],
         ),
@@ -132,22 +146,31 @@ class _PinPadState extends State<PinPad> {
 }
 
 class _Dot extends StatelessWidget {
-  const _Dot({required this.filled});
+  const _Dot({required this.filled, this.success = false});
   final bool filled;
+  final bool success;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      width: 16,
-      height: 16,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: filled ? scheme.primary : Colors.transparent,
-        border: Border.all(
-          color: filled ? scheme.primary : scheme.outlineVariant,
-          width: 2,
+    final activeColor = success ? context.money.profit : scheme.primary;
+    // Filled dots pop slightly larger during the success animation.
+    final scale = filled && success ? 1.35 : 1.0;
+    return AnimatedScale(
+      scale: scale,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutBack,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: filled ? activeColor : Colors.transparent,
+          border: Border.all(
+            color: filled ? activeColor : scheme.outlineVariant,
+            width: 2,
+          ),
         ),
       ),
     );

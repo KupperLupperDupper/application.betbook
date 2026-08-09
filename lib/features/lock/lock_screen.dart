@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n_ext.dart';
 import '../../providers/lock_providers.dart';
 import '../../providers/settings_providers.dart';
+import '../../widgets/suit_marks.dart';
 import 'widgets/pin_pad.dart';
 
 /// Full-screen overlay shown while the app is locked. Opaque so it fully
@@ -17,8 +18,13 @@ class LockScreen extends ConsumerStatefulWidget {
 }
 
 class _LockScreenState extends ConsumerState<LockScreen> {
+  static const _pinLength = 4;
   String? _errorText;
   bool _authenticating = false;
+
+  // Drives the biometric-success dot animation.
+  bool _success = false;
+  int _successFill = 0;
 
   @override
   void initState() {
@@ -44,6 +50,22 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     ref.read(lockControllerProvider.notifier).unlock();
   }
 
+  /// Fills the PIN dots one-by-one in the success colour, then unlocks — a
+  /// small confirmation that the biometric check passed.
+  Future<void> _playSuccessThenUnlock() async {
+    if (!mounted) return;
+    setState(() => _success = true);
+    HapticFeedback.selectionClick();
+    for (var i = 1; i <= _pinLength; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 85));
+      if (!mounted) return;
+      setState(() => _successFill = i);
+    }
+    HapticFeedback.mediumImpact();
+    await Future<void>.delayed(const Duration(milliseconds: 260));
+    _unlock();
+  }
+
   Future<void> _authenticateBiometric() async {
     if (_authenticating) return;
     setState(() => _authenticating = true);
@@ -56,7 +78,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
         persistAcrossBackgrounding: true,
       );
       if (ok) {
-        _unlock();
+        await _playSuccessThenUnlock();
         return;
       }
     } catch (_) {
@@ -93,39 +115,54 @@ class _LockScreenState extends ConsumerState<LockScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.lock_rounded,
-                    size: 48,
-                    color: scheme.primary,
-                  ),
-                  const SizedBox(height: 20),
+                  const BrandMark(size: 64),
+                  const SizedBox(height: 24),
                   Text(
-                    'BetBook',
+                    l10n.lockTitle,
                     style: theme.textTheme.headlineSmall
                         ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    l10n.lockTitle,
+                    l10n.lockInstruction,
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyLarge
+                    style: theme.textTheme.bodyMedium
                         ?.copyWith(color: scheme.onSurfaceVariant),
-                  ),
-                  const SizedBox(height: 40),
-                  PinPad(
-                    title: l10n.lockEnterPin,
-                    errorText: _errorText,
-                    onCompleted: _onPinCompleted,
                   ),
                   if (ref.watch(
                       settingsProvider.select((s) => s.biometricEnabled))) ...[
-                    const SizedBox(height: 24),
-                    TextButton.icon(
-                      onPressed: _authenticating ? null : _authenticateBiometric,
-                      icon: const Icon(Icons.fingerprint_rounded),
-                      label: Text(l10n.lockUseBiometrics),
+                    const SizedBox(height: 28),
+                    Semantics(
+                      button: true,
+                      label: l10n.lockUseBiometrics,
+                      child: InkWell(
+                        onTap:
+                            _authenticating ? null : _authenticateBiometric,
+                        customBorder: const CircleBorder(),
+                        child: Container(
+                          width: 76,
+                          height: 76,
+                          decoration: BoxDecoration(
+                            color: scheme.primaryContainer,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.fingerprint_rounded,
+                            size: 38,
+                            color: scheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
+                  const SizedBox(height: 28),
+                  PinPad(
+                    length: _pinLength,
+                    errorText: _errorText,
+                    onCompleted: _onPinCompleted,
+                    success: _success,
+                    overrideFilled: _success ? _successFill : null,
+                  ),
                 ],
               ),
             ),

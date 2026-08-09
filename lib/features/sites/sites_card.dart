@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/routes.dart';
+import '../../core/money/money_format.dart';
 import '../../core/stats/summaries.dart';
 import '../../l10n/l10n_ext.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/net_text.dart';
 import 'widgets/site_tile.dart';
 
 class SitesCard extends ConsumerWidget {
@@ -26,9 +28,8 @@ class SitesCard extends ConsumerWidget {
       data: (sites) {
         if (sites.isEmpty) {
           return EmptyState(
-            icon: Icons.sports_soccer_rounded,
-            title: l10n.dashboardEmptyTitle,
-            message: l10n.dashboardEmptyBody,
+            title: l10n.sitesEmptyTitle,
+            message: l10n.sitesEmptyBody,
             actionLabel: l10n.siteAdd,
             onAction: () => context.push(Routes.newSite),
           );
@@ -36,18 +37,29 @@ class SitesCard extends ConsumerWidget {
         if (portfolio == null) {
           return const Center(child: CircularProgressIndicator());
         }
+        final base = portfolio.baseCurrency;
         return ListView(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 120),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-              child: OutlinedButton.icon(
-                onPressed: () => context.push(Routes.newSite),
-                icon: const Icon(Icons.add_rounded),
-                label: Text(l10n.siteAdd),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.sitesCount(sites.length),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ),
+                  NetText(
+                    value: portfolio.netBase,
+                    text: formatMajor(portfolio.netBase, base,
+                        localeName: locale, withSign: true),
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ],
               ),
             ),
             for (final site in sites)
