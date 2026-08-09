@@ -36,7 +36,9 @@ fun signingValue(propKey: String, envKey: String): String? =
     keystoreProperties.getProperty(propKey) ?: System.getenv(envKey)
 
 val resolvedStoreFile: String? = signingValue("storeFile", "KEYSTORE_PATH")
-val hasReleaseSigning: Boolean = resolvedStoreFile != null
+// Treat an empty env value (CI without keystore secrets) as "no signing" so the
+// release build falls back to debug keys instead of failing.
+val hasReleaseSigning: Boolean = !resolvedStoreFile.isNullOrBlank()
 
 android {
     namespace = "io.github.kupperlupperdupper.betbook"

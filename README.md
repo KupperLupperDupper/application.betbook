@@ -4,6 +4,12 @@ Track your deposits and withdrawals across betting/gambling sites and see your *
 
 Android-first, built with Flutter (also configured for iOS).
 
+## Download
+
+Grab the latest APK from the [**Releases**](https://github.com/KupperLupperDupper/application.betbook/releases) page — each release attaches an `.apk` plus a **QR code** you can scan with your phone to download it directly. Sideloading requires "install from unknown sources".
+
+> Releases are debug-signed until an upload keystore is configured (see [docs/RELEASE.md](docs/RELEASE.md)). That's fine for personal sideloading; set up the keystore secrets for a properly signed build.
+
 ## Features
 
 - **Multi-currency per site**, converted to a base currency (default DKK) for aggregate totals.
