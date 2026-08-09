@@ -1,0 +1,96 @@
+import java.io.FileInputStream
+import java.util.Properties
+
+plugins {
+    id("com.android.application")
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id("dev.flutter.flutter-gradle-plugin")
+}
+
+// ---------------------------------------------------------------------------
+// Release signing configuration.
+//
+// Credentials are resolved from two sources, in order of priority:
+//   1. android/key.properties  (local developer machines; git-ignored)
+//   2. environment variables    (CI, e.g. GitHub Actions)
+//
+// This lets the same build work locally and in CI without any code changes.
+// A key.properties file looks like:
+//
+//   storeFile=/absolute/path/to/upload-keystore.jks
+//   storePassword=********
+//   keyAlias=upload
+//   keyPassword=********
+//
+// The matching environment variables are:
+//   KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
+// ---------------------------------------------------------------------------
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
+}
+
+// Resolve a single signing value: prefer key.properties, then fall back to env.
+fun signingValue(propKey: String, envKey: String): String? =
+    keystoreProperties.getProperty(propKey) ?: System.getenv(envKey)
+
+val resolvedStoreFile: String? = signingValue("storeFile", "KEYSTORE_PATH")
+val hasReleaseSigning: Boolean = resolvedStoreFile != null
+
+android {
+    namespace = "io.github.kupperlupperdupper.betbook"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    defaultConfig {
+        applicationId = "io.github.kupperlupperdupper.betbook"
+        // minSdk raised to 23 for biometric (BiometricPrompt) support.
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        // versionCode / versionName are derived from pubspec.yaml `version:`
+        // (e.g. 1.0.0+1 -> versionName "1.0.0", versionCode 1), exactly as the
+        // default Flutter template does.
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    signingConfigs {
+        create("release") {
+            if (hasReleaseSigning) {
+                storeFile = file(resolvedStoreFile!!)
+                storePassword = signingValue("storePassword", "KEYSTORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Use the real upload keystore when credentials are available
+            // (CI or a configured local machine). Otherwise fall back to the
+            // debug keys so `flutter run --release` still works out of the box.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+        }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
+flutter {
+    source = "../.."
+}

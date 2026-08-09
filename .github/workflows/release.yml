@@ -1,0 +1,193 @@
+name: Release Android APK
+
+# Build a signed release APK and publish a GitHub Release whenever a version
+# tag (v*) is pushed. Can also be run manually with an explicit tag.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build and release (e.g. v1.0.0). Created if it does not exist."
+        required: true
+        type: string
+
+# Least privilege: the job only needs to create releases / upload assets.
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build signed APK and publish release
+    runs-on: ubuntu-latest
+
+    env:
+      FLUTTER_VERSION: "3.44.0"
+      JAVA_VERSION: "17"
+
+    steps:
+      - name: Checkout (full history for changelog)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release tag
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          if [[ -z "$TAG" ]]; then
+            echo "::error::Could not determine a release tag." >&2
+            exit 1
+          fi
+          APK_NAME="betbook-${TAG}.apk"
+          QR_NAME="betbook-${TAG}-qr.png"
+          DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${APK_NAME}"
+          QR_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${QR_NAME}"
+          {
+            echo "tag=${TAG}"
+            echo "apk_name=${APK_NAME}"
+            echo "qr_name=${QR_NAME}"
+            echo "download_url=${DOWNLOAD_URL}"
+            echo "qr_url=${QR_URL}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Releasing tag ${TAG}"
+
+      - name: Set up Java (Temurin ${{ env.JAVA_VERSION }})
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Set up Node.js (for QR generation)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Decode release keystore
+        id: keystore
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${KEYSTORE_BASE64:-}" ]]; then
+            echo "::error::Secret KEYSTORE_BASE64 is not set. Run scripts/generate-keystore.sh and add the secrets (see docs/RELEASE.md)." >&2
+            exit 1
+          fi
+          KEYSTORE_PATH="${GITHUB_WORKSPACE}/android/upload-keystore.jks"
+          echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_PATH"
+          echo "keystore_path=${KEYSTORE_PATH}" >> "$GITHUB_OUTPUT"
+          echo "Keystore decoded to ${KEYSTORE_PATH}"
+
+      - name: Build signed release APK
+        env:
+          KEYSTORE_PATH: ${{ steps.keystore.outputs.keystore_path }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          # Universal APK (no --split-per-abi) so a single QR/download works on
+          # every device. See docs/RELEASE.md for the rationale.
+          flutter build apk --release
+
+      - name: Stage APK asset
+        id: apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="build/app/outputs/flutter-apk/app-release.apk"
+          if [[ ! -f "$SRC" ]]; then
+            echo "::error::Expected APK not found at $SRC" >&2
+            exit 1
+          fi
+          mkdir -p dist
+          cp "$SRC" "dist/${{ steps.meta.outputs.apk_name }}"
+          echo "apk_path=dist/${{ steps.meta.outputs.apk_name }}" >> "$GITHUB_OUTPUT"
+          ls -la dist
+
+      - name: Verify APK signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APKSIGNER="$(find "$ANDROID_SDK_ROOT/build-tools" -name apksigner | sort -V | tail -n1 || true)"
+          if [[ -n "$APKSIGNER" ]]; then
+            "$APKSIGNER" verify --verbose "${{ steps.apk.outputs.apk_path }}"
+          else
+            echo "apksigner not found; skipping explicit verification."
+          fi
+
+      - name: Generate changelog
+        id: changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x scripts/generate-changelog.sh
+          scripts/generate-changelog.sh "${{ steps.meta.outputs.tag }}" "dist/CHANGELOG_RELEASE.md"
+          cat dist/CHANGELOG_RELEASE.md
+
+      - name: Generate download QR code
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes qrcode@1 -o "dist/${{ steps.meta.outputs.qr_name }}" \
+            "${{ steps.meta.outputs.download_url }}"
+          test -f "dist/${{ steps.meta.outputs.qr_name }}"
+          echo "QR encodes: ${{ steps.meta.outputs.download_url }}"
+
+      - name: Assemble release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="dist/RELEASE_NOTES.md"
+          cp "dist/CHANGELOG_RELEASE.md" "$BODY"
+          {
+            echo
+            echo "---"
+            echo
+            echo "### Install on your phone"
+            echo
+            echo "Scan this QR code to download the APK directly to your device:"
+            echo
+            echo "![Download QR](${{ steps.meta.outputs.qr_url }})"
+            echo
+            echo "Or download it here: [\`${{ steps.meta.outputs.apk_name }}\`](${{ steps.meta.outputs.download_url }})"
+            echo
+            echo "> You may need to allow \"Install unknown apps\" for your browser to install a downloaded APK."
+          } >> "$BODY"
+          cat "$BODY"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: BetBook ${{ steps.meta.outputs.tag }}
+          body_path: dist/RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+          files: |
+            dist/${{ steps.meta.outputs.apk_name }}
+            dist/${{ steps.meta.outputs.qr_name }}

@@ -1,0 +1,167 @@
+import 'dart:io';
+
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
+import '../models/enums.dart';
+import 'tables.dart';
+
+part 'database.g.dart';
+
+@DriftDatabase(tables: [Sites, Transactions, ExchangeRates])
+class AppDatabase extends _$AppDatabase {
+  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
+
+  /// Used by tests to spin up an in-memory database.
+  AppDatabase.forTesting(super.executor);
+
+  @override
+  int get schemaVersion => 1;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        beforeOpen: (details) async {
+          // Required for `onDelete: cascade` to actually fire in SQLite.
+          await customStatement('PRAGMA foreign_keys = ON');
+        },
+      );
+
+  // ---------------------------------------------------------------------------
+  // Sites
+  // ---------------------------------------------------------------------------
+
+  Stream<List<Site>> watchSites() {
+    return (select(sites)
+          ..orderBy([
+            (s) => OrderingTerm(expression: s.sortOrder),
+            (s) => OrderingTerm(expression: s.name),
+          ]))
+        .watch();
+  }
+
+  Future<List<Site>> getSites() => select(sites).get();
+
+  Stream<Site?> watchSite(String id) {
+    return (select(sites)..where((s) => s.id.equals(id)))
+        .watchSingleOrNull();
+  }
+
+  Future<void> upsertSite(SitesCompanion site) =>
+      into(sites).insertOnConflictUpdate(site);
+
+  Future<void> deleteSite(String id) =>
+      (delete(sites)..where((s) => s.id.equals(id))).go();
+
+  // ---------------------------------------------------------------------------
+  // Transactions
+  // ---------------------------------------------------------------------------
+
+  Stream<List<Transaction>> watchAllTransactions() {
+    return (select(transactions)
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.date, mode: OrderingMode.desc),
+            (t) =>
+                OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
+          ]))
+        .watch();
+  }
+
+  Stream<List<Transaction>> watchTransactionsForSite(String siteId) {
+    return (select(transactions)
+          ..where((t) => t.siteId.equals(siteId))
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.date, mode: OrderingMode.desc),
+            (t) =>
+                OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
+          ]))
+        .watch();
+  }
+
+  Future<List<Transaction>> getAllTransactions() =>
+      select(transactions).get();
+
+  Future<void> upsertTransaction(TransactionsCompanion tx) =>
+      into(transactions).insertOnConflictUpdate(tx);
+
+  Future<void> deleteTransaction(String id) =>
+      (delete(transactions)..where((t) => t.id.equals(id))).go();
+
+  /// Sum of deposits made across all sites since [since], grouped by currency.
+  /// Used by the responsible-gambling deposit-limit check.
+  Future<List<Transaction>> depositsSince(DateTime since) {
+    return (select(transactions)
+          ..where((t) =>
+              t.type.equalsValue(TransactionType.deposit) &
+              t.date.isBiggerOrEqualValue(since)))
+        .get();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Exchange rates
+  // ---------------------------------------------------------------------------
+
+  Stream<List<ExchangeRate>> watchRates() => select(exchangeRates).watch();
+
+  Future<List<ExchangeRate>> getRates() => select(exchangeRates).get();
+
+  Future<void> upsertRate(ExchangeRatesCompanion rate) =>
+      into(exchangeRates).insertOnConflictUpdate(rate);
+
+  Future<void> deleteRate(String currencyCode) =>
+      (delete(exchangeRates)..where((r) => r.currencyCode.equals(currencyCode)))
+          .go();
+
+  /// Inserts a 1:1 placeholder rate for [currencyCode] if none exists yet, so a
+  /// newly used currency always has an editable row.
+  Future<void> ensureRate(String currencyCode, DateTime now) async {
+    await into(exchangeRates).insert(
+      ExchangeRatesCompanion.insert(
+        currencyCode: currencyCode,
+        rateToBase: 1.0,
+        updatedAt: now,
+      ),
+      mode: InsertMode.insertOrIgnore,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Bulk / maintenance
+  // ---------------------------------------------------------------------------
+
+  Future<void> clearAll() async {
+    await transaction(() async {
+      await delete(transactions).go();
+      await delete(sites).go();
+      await delete(exchangeRates).go();
+    });
+  }
+
+  /// Replaces the entire database contents in a single transaction.
+  /// Used when importing a backup.
+  Future<void> replaceAll({
+    required List<SitesCompanion> newSites,
+    required List<TransactionsCompanion> newTransactions,
+    required List<ExchangeRatesCompanion> newRates,
+  }) async {
+    await transaction(() async {
+      await delete(transactions).go();
+      await delete(sites).go();
+      await delete(exchangeRates).go();
+      await batch((b) {
+        b.insertAll(sites, newSites);
+        b.insertAll(exchangeRates, newRates);
+        b.insertAll(transactions, newTransactions);
+      });
+    });
+  }
+}
+
+LazyDatabase _openConnection() {
+  return LazyDatabase(() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File(p.join(dir.path, 'betbook.sqlite'));
+    return NativeDatabase.createInBackground(file);
+  });
+}
