@@ -95,17 +95,26 @@ class ExchangeRatesScreen extends ConsumerWidget {
     String base,
     List<ExchangeRate> rates,
   ) async {
+    final l10n = context.l10n;
     final taken = {base, for (final r in rates) r.currencyCode};
     final options =
         kSupportedCurrencies.where((c) => !taken.contains(c.code)).toList();
-    if (options.isEmpty) return;
 
-    final code = await showModalBottomSheet<String>(
+    // '__custom__' sentinel lets the user add any ISO code beyond the presets.
+    const customSentinel = '__custom__';
+    final choice = await showModalBottomSheet<String>(
       context: context,
+      showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: ListView(
           shrinkWrap: true,
           children: [
+            ListTile(
+              leading: const Icon(Icons.add_rounded),
+              title: Text(l10n.exchangeRatesCustom),
+              onTap: () => Navigator.pop(ctx, customSentinel),
+            ),
+            if (options.isNotEmpty) const Divider(height: 1),
             for (final c in options)
               ListTile(
                 leading: Text(
@@ -119,8 +128,16 @@ class ExchangeRatesScreen extends ConsumerWidget {
         ),
       ),
     );
-    if (code == null) return;
-    if (!context.mounted) return;
+    if (choice == null || !context.mounted) return;
+
+    String code;
+    if (choice == customSentinel) {
+      final custom = await _promptCustomCode(context, taken);
+      if (custom == null || !context.mounted) return;
+      code = custom;
+    } else {
+      code = choice;
+    }
 
     final value = await _showRateDialog(
       context,
@@ -136,6 +153,59 @@ class ExchangeRatesScreen extends ConsumerWidget {
             updatedAt: DateTime.now(),
           ),
         );
+  }
+
+  /// Prompts for a custom 3-letter currency code, returning it upper-cased.
+  Future<String?> _promptCustomCode(
+    BuildContext context,
+    Set<String> taken,
+  ) {
+    final l10n = context.l10n;
+    final controller = TextEditingController();
+    String? errorText;
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: Text(l10n.exchangeRatesCustom),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            textCapitalization: TextCapitalization.characters,
+            maxLength: 3,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp('[a-zA-Z]')),
+              UpperCaseTextFormatter(),
+            ],
+            decoration: InputDecoration(
+              labelText: l10n.exchangeRatesCustomCode,
+              errorText: errorText,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.actionCancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                final code = controller.text.trim().toUpperCase();
+                if (code.length != 3) {
+                  setState(() => errorText = l10n.exchangeRatesCodeInvalid);
+                  return;
+                }
+                if (taken.contains(code)) {
+                  setState(() => errorText = l10n.exchangeRatesCodeTaken);
+                  return;
+                }
+                Navigator.pop(ctx, code);
+              },
+              child: Text(l10n.actionAdd),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<double?> _showRateDialog(
@@ -184,6 +254,17 @@ class ExchangeRatesScreen extends ConsumerWidget {
   static String _trim(double v) {
     final s = v.toString();
     return s.endsWith('.0') ? s.substring(0, s.length - 2) : s;
+  }
+}
+
+/// Forces typed text to upper case (for currency codes).
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
   }
 }
 

@@ -130,18 +130,40 @@ class _EditSiteScreenState extends ConsumerState<EditSiteScreen> {
                   (v == null || v.trim().isEmpty) ? l10n.commonRequired : null,
             ),
             const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              initialValue: _currency,
-              decoration: InputDecoration(labelText: l10n.siteCurrencyLabel),
-              items: [
-                for (final c in kSupportedCurrencies)
-                  DropdownMenuItem(
-                    value: c.code,
-                    child: Text('${c.code} · ${c.name}'),
-                  ),
-              ],
-              onChanged: (v) => setState(() => _currency = v ?? _currency),
-            ),
+            Builder(builder: (context) {
+              // Offer the presets plus any custom currencies the user added on
+              // the exchange-rates screen (and the currently selected one).
+              final rateCodes = ref
+                      .watch(ratesProvider)
+                      .valueOrNull
+                      ?.map((r) => r.currencyCode) ??
+                  const <String>[];
+              final codes = <String>{
+                for (final c in kSupportedCurrencies) c.code,
+                ...rateCodes,
+                _currency,
+              }.toList()
+                ..sort();
+              return DropdownButtonFormField<String>(
+                initialValue: _currency,
+                isExpanded: true,
+                decoration:
+                    InputDecoration(labelText: l10n.siteCurrencyLabel),
+                items: [
+                  for (final code in codes)
+                    DropdownMenuItem(
+                      value: code,
+                      child: Text(
+                        currencyInfoFor(code) != null
+                            ? '$code · ${currencyInfoFor(code)!.name}'
+                            : code,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _currency = v ?? _currency),
+              );
+            }),
             const SizedBox(height: 24),
             Text(l10n.siteColorLabel,
                 style: Theme.of(context).textTheme.labelLarge),

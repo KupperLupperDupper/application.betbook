@@ -155,6 +155,10 @@
     "placeholders": { "base": { "type": "String" } }
   },
   "exchangeRatesAddCurrency": "Add currency",
+  "exchangeRatesCustom": "Custom currency…",
+  "exchangeRatesCustomCode": "3-letter code (e.g. JPY)",
+  "exchangeRatesCodeInvalid": "Enter a 3-letter currency code",
+  "exchangeRatesCodeTaken": "That currency already exists",
   "exchangeRatesOneBase": "1 {base} =",
   "@exchangeRatesOneBase": {
     "placeholders": { "base": { "type": "String" } }

@@ -436,6 +436,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exchangeRatesAddCurrency => 'Add currency';
 
   @override
+  String get exchangeRatesCustom => 'Custom currency…';
+
+  @override
+  String get exchangeRatesCustomCode => '3-letter code (e.g. JPY)';
+
+  @override
+  String get exchangeRatesCodeInvalid => 'Enter a 3-letter currency code';
+
+  @override
+  String get exchangeRatesCodeTaken => 'That currency already exists';
+
+  @override
   String exchangeRatesOneBase(String base) {
     return '1 $base =';
   }

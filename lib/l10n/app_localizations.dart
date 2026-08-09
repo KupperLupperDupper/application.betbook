@@ -884,6 +884,30 @@ abstract class AppLocalizations {
   /// **'Add currency'**
   String get exchangeRatesAddCurrency;
 
+  /// No description provided for @exchangeRatesCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom currency…'**
+  String get exchangeRatesCustom;
+
+  /// No description provided for @exchangeRatesCustomCode.
+  ///
+  /// In en, this message translates to:
+  /// **'3-letter code (e.g. JPY)'**
+  String get exchangeRatesCustomCode;
+
+  /// No description provided for @exchangeRatesCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a 3-letter currency code'**
+  String get exchangeRatesCodeInvalid;
+
+  /// No description provided for @exchangeRatesCodeTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'That currency already exists'**
+  String get exchangeRatesCodeTaken;
+
   /// No description provided for @exchangeRatesOneBase.
   ///
   /// In en, this message translates to:

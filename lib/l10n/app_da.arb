@@ -155,6 +155,10 @@
     "placeholders": { "base": { "type": "String" } }
   },
   "exchangeRatesAddCurrency": "Tilføj valuta",
+  "exchangeRatesCustom": "Anden valuta…",
+  "exchangeRatesCustomCode": "3-bogstavskode (f.eks. JPY)",
+  "exchangeRatesCodeInvalid": "Indtast en valutakode på 3 bogstaver",
+  "exchangeRatesCodeTaken": "Den valuta findes allerede",
   "exchangeRatesOneBase": "1 {base} =",
   "@exchangeRatesOneBase": {
     "placeholders": { "base": { "type": "String" } }

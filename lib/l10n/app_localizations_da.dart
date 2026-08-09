@@ -435,6 +435,18 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exchangeRatesAddCurrency => 'Tilføj valuta';
 
   @override
+  String get exchangeRatesCustom => 'Anden valuta…';
+
+  @override
+  String get exchangeRatesCustomCode => '3-bogstavskode (f.eks. JPY)';
+
+  @override
+  String get exchangeRatesCodeInvalid => 'Indtast en valutakode på 3 bogstaver';
+
+  @override
+  String get exchangeRatesCodeTaken => 'Den valuta findes allerede';
+
+  @override
   String exchangeRatesOneBase(String base) {
     return '1 $base =';
   }
