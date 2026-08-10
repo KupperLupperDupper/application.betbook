@@ -5,6 +5,7 @@ import '../../../core/stats/summaries.dart';
 import '../../../data/database/database.dart';
 import '../../../l10n/l10n_ext.dart';
 import '../../../widgets/currency_chip.dart';
+import '../../../widgets/mini_card_avatar.dart';
 import '../../../widgets/net_text.dart';
 
 /// A single site row: colour avatar, name, transaction count, currency badge,
@@ -26,27 +27,13 @@ class SiteTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = Color(site.colorValue);
-
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       onTap: onTap,
-      leading: Container(
-        width: 40,
-        height: 40,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          site.name.isNotEmpty ? site.name.characters.first.toUpperCase() : '?',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
-          ),
-        ),
+      leading: MiniCardAvatar(
+        siteId: site.id,
+        name: site.name,
+        colorValue: site.colorValue,
       ),
       title: Text(
         site.name,

@@ -15,6 +15,7 @@ import '../../data/database/database.dart';
 import '../../l10n/l10n_ext.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
+import '../../widgets/count_up_amount.dart';
 import '../../widgets/empty_state.dart';
 
 /// Short, symbol-less axis label (e.g. `4,8K`, `0`, `-200`) — the currency
@@ -117,13 +118,13 @@ class _StatsCardState extends ConsumerState<StatsCard> {
             style: theme.textTheme.labelLarge
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
         const SizedBox(height: 4),
-        Text(
-          formatMajor(rangeNet, base, localeName: locale, withSign: true),
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: context.money.forAmount(rangeNet),
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+        CountUpAmount(
+          value: rangeNet,
+          format: (v) =>
+              formatMajor(v, base, localeName: locale, withSign: true),
+          style: theme.textTheme.headlineMedium
+              ?.copyWith(fontWeight: FontWeight.w800),
+          iconSize: 24,
         ),
         const SizedBox(height: 24),
         if (series.length >= 2) ...[

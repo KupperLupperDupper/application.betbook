@@ -60,6 +60,8 @@ android {
         // default Flutter template does.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // App name shown under the icon; overridden for debug below.
+        manifestPlaceholders["appLabel"] = "BetBook"
     }
 
     signingConfigs {
@@ -83,6 +85,14 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+        }
+        debug {
+            // Install debug builds as a SEPARATE app alongside the release app,
+            // with their own data — so on-device testing never touches the
+            // installed release build.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            manifestPlaceholders["appLabel"] = "BetBook (debug)"
         }
     }
 }

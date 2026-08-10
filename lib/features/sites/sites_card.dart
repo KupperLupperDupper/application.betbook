@@ -10,6 +10,7 @@ import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/net_text.dart';
+import '../../widgets/suit_loader.dart';
 import 'widgets/site_tile.dart';
 
 class SitesCard extends ConsumerWidget {
@@ -23,7 +24,7 @@ class SitesCard extends ConsumerWidget {
     final locale = ref.watch(settingsProvider.select((s) => s.languageCode));
 
     return sitesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: SuitLoader()),
       error: (e, _) => Center(child: Text(l10n.commonError)),
       data: (sites) {
         if (sites.isEmpty) {
@@ -35,7 +36,7 @@ class SitesCard extends ConsumerWidget {
           );
         }
         if (portfolio == null) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: SuitLoader());
         }
         final base = portfolio.baseCurrency;
         return ListView(

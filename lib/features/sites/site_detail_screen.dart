@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../app/routes.dart';
 import '../../core/money/money_format.dart';
+import '../../core/theme/deck_motion.dart';
 import '../../core/theme/money_colors.dart';
 import '../../core/utils/date_format.dart';
 import '../../data/database/database.dart';
@@ -14,6 +15,8 @@ import '../../providers/core_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/mini_card_avatar.dart';
+import '../../widgets/suit_loader.dart';
 
 class SiteDetailScreen extends ConsumerWidget {
   const SiteDetailScreen({super.key, required this.siteId});
@@ -61,7 +64,7 @@ class SiteDetailScreen extends ConsumerWidget {
 
     return siteAsync.when(
       loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: SuitLoader()),
       ),
       error: (e, _) => Scaffold(body: Center(child: Text(l10n.commonError))),
       data: (site) {
@@ -209,6 +212,27 @@ class _HeroCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Hero card chip with a single scale/fade-in on entry (§3.5).
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.94, end: 1.0),
+            duration: Motion.of(context).heroChipIn,
+            curve: Motion.entrance,
+            builder: (context, v, child) => Opacity(
+              opacity: ((v - 0.94) / 0.06).clamp(0.0, 1.0),
+              child: Transform.scale(
+                scale: v,
+                alignment: Alignment.centerLeft,
+                child: child,
+              ),
+            ),
+            child: MiniCardAvatar(
+              siteId: site.id,
+              name: site.name,
+              colorValue: site.colorValue,
+              size: CardChipSize.hero,
+            ),
+          ),
+          const SizedBox(height: 16),
           Row(
             children: [
               Icon(

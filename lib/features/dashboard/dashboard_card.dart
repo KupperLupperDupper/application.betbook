@@ -11,7 +11,9 @@ import '../../data/database/database.dart';
 import '../../l10n/l10n_ext.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
+import '../../widgets/count_up_amount.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/suit_loader.dart';
 import '../sites/widgets/site_tile.dart';
 
 class DashboardCard extends ConsumerWidget {
@@ -25,7 +27,7 @@ class DashboardCard extends ConsumerWidget {
     final locale = ref.watch(settingsProvider.select((s) => s.languageCode));
 
     return sitesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: SuitLoader()),
       error: (e, _) => Center(child: Text(l10n.commonError)),
       data: (sites) {
         if (sites.isEmpty || (portfolio != null && portfolio.isEmpty)) {
@@ -38,7 +40,7 @@ class DashboardCard extends ConsumerWidget {
           );
         }
         if (portfolio == null) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: SuitLoader());
         }
         return _DashboardBody(
           sites: sites,
@@ -101,28 +103,21 @@ class _DashboardBody extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         // Hero P/L
-        Row(
-          children: [
-            Icon(money.iconForAmount(net), color: money.forAmount(net), size: 30),
-            const SizedBox(width: 8),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  formatMajorSmart(net, base, localeName: localeName, withSign: true),
-                  style: TextStyle(
-                    fontSize: 46,
-                    height: 1.05,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -1,
-                    color: money.forAmount(net),
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: CountUpAmount(
+            value: portfolio.netBase,
+            format: (v) =>
+                formatMajorSmart(v, base, localeName: localeName, withSign: true),
+            style: const TextStyle(
+              fontSize: 46,
+              height: 1.05,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -1,
             ),
-          ],
+            iconSize: 30,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
