@@ -12,14 +12,26 @@ void showUndoSnackBar(
   required String undoLabel,
   required VoidCallback onUndo,
 }) {
-  messenger
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(label: undoLabel, onPressed: onUndo),
+  // Clear any queued/current snackbars so rapid actions never stack and leave
+  // one lingering. `clearSnackBars` removes the queue too (hideCurrentSnackBar
+  // only dismisses the visible one).
+  messenger.clearSnackBars();
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(message),
+      duration: const Duration(seconds: 4),
+      // Default (fixed) behavior: a floating SnackBar inside the home's Stack
+      // can fail to auto-dismiss; fixed anchors to the Scaffold and always does.
+      action: SnackBarAction(
+        label: undoLabel,
+        // Guard the callback: if it threw, SnackBarAction would skip its own
+        // dismiss and the bar would stay on screen forever.
+        onPressed: () {
+          try {
+            onUndo();
+          } catch (_) {/* restore is best-effort; still dismiss */}
+        },
       ),
-    );
+    ),
+  );
 }
