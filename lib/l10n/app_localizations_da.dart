@@ -624,6 +624,98 @@ class AppLocalizationsDa extends AppLocalizations {
   String get repeatThisEntry => 'Gentag denne postering';
 
   @override
+  String get tagsLabel => 'Tags';
+
+  @override
+  String get addTag => 'Tilføj tag';
+
+  @override
+  String get searchOrCreateTag => 'Søg eller opret tag';
+
+  @override
+  String createTagNamed(String name) {
+    return 'Opret \"$name\"';
+  }
+
+  @override
+  String get allTags => 'Alle tags';
+
+  @override
+  String onlyTags(String names) {
+    return 'Kun: $names';
+  }
+
+  @override
+  String get clearFilter => 'Ryd filter';
+
+  @override
+  String get tagsClear => 'Ryd';
+
+  @override
+  String get maxTagsPerTx => 'Højst 5 tags pr. postering.';
+
+  @override
+  String get maxTagsFilter => 'Højst 3 tags ad gangen.';
+
+  @override
+  String get tagInUse => 'Der findes allerede et tag med det navn.';
+
+  @override
+  String get tagDeleteTitle => 'Slet tag';
+
+  @override
+  String tagDeleteBody(int count) {
+    return 'Tagget fjernes fra $count posteringer. Posteringerne slettes ikke.';
+  }
+
+  @override
+  String get tagDeletedSnack => 'Tag slettet';
+
+  @override
+  String get tagMergeInto => 'Flet ind i et andet tag…';
+
+  @override
+  String tagMergedSnack(String source, String target) {
+    return '$source flettet ind i $target';
+  }
+
+  @override
+  String get tagNoColour => 'Ingen farve';
+
+  @override
+  String get tagsManageTitle => 'Tags';
+
+  @override
+  String get noTagsYet => 'Ingen tags endnu';
+
+  @override
+  String get noTagsYetBody => 'Tilføj et tag, når du opretter en postering.';
+
+  @override
+  String get noEntriesForTag => 'Ingen posteringer med dette tag';
+
+  @override
+  String get noEntriesForTagBody => 'Prøv en anden periode eller ryd filteret.';
+
+  @override
+  String get tagsHintStats => 'Tag dine posteringer for at filtrere her.';
+
+  @override
+  String get tagsExplainer =>
+      'Tags gør det muligt at filtrere Stats — fx fodbold eller poker.';
+
+  @override
+  String entriesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count posteringer',
+      one: '1 postering',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsImportCsv => 'Importér CSV';
 
   @override

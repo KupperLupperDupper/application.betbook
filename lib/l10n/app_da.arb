@@ -237,6 +237,47 @@
   "repeatEntry": "Gentag postering",
   "repeatThisEntry": "Gentag denne postering",
 
+  "tagsLabel": "Tags",
+  "addTag": "Tilføj tag",
+  "searchOrCreateTag": "Søg eller opret tag",
+  "createTagNamed": "Opret \"{name}\"",
+  "@createTagNamed": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "allTags": "Alle tags",
+  "onlyTags": "Kun: {names}",
+  "@onlyTags": {
+    "placeholders": { "names": { "type": "String" } }
+  },
+  "clearFilter": "Ryd filter",
+  "tagsClear": "Ryd",
+  "maxTagsPerTx": "Højst 5 tags pr. postering.",
+  "maxTagsFilter": "Højst 3 tags ad gangen.",
+  "tagInUse": "Der findes allerede et tag med det navn.",
+  "tagDeleteTitle": "Slet tag",
+  "tagDeleteBody": "Tagget fjernes fra {count} posteringer. Posteringerne slettes ikke.",
+  "@tagDeleteBody": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "tagDeletedSnack": "Tag slettet",
+  "tagMergeInto": "Flet ind i et andet tag…",
+  "tagMergedSnack": "{source} flettet ind i {target}",
+  "@tagMergedSnack": {
+    "placeholders": { "source": { "type": "String" }, "target": { "type": "String" } }
+  },
+  "tagNoColour": "Ingen farve",
+  "tagsManageTitle": "Tags",
+  "noTagsYet": "Ingen tags endnu",
+  "noTagsYetBody": "Tilføj et tag, når du opretter en postering.",
+  "noEntriesForTag": "Ingen posteringer med dette tag",
+  "noEntriesForTagBody": "Prøv en anden periode eller ryd filteret.",
+  "tagsHintStats": "Tag dine posteringer for at filtrere her.",
+  "tagsExplainer": "Tags gør det muligt at filtrere Stats — fx fodbold eller poker.",
+  "entriesCount": "{count, plural, =1{1 postering} other{{count} posteringer}}",
+  "@entriesCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
   "settingsImportCsv": "Importér CSV",
   "settingsImportCsvSubtitle": "Tilføj transaktioner fra en CSV-fil",
   "csvImportConfirm": "Transaktioner i filen føjes til dine nuværende data. Sider matches på navn og oprettes hvis de mangler.",

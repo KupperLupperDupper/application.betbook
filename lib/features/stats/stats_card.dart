@@ -9,15 +9,25 @@ import 'package:intl/intl.dart';
 import '../../app/routes.dart';
 import '../../core/money/money_format.dart';
 import '../../core/stats/summaries.dart';
+import '../../core/theme/deck_motion.dart';
 import '../../core/theme/money_colors.dart';
 import '../../core/utils/date_format.dart';
 import '../../data/database/database.dart';
 import '../../l10n/l10n_ext.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
+import '../../providers/tags_providers.dart';
 import '../../widgets/count_up_amount.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/skeleton.dart';
+import '../../widgets/suit_marks.dart';
+import '../../widgets/tag_chip.dart';
+import '../tags/tag_picker_sheet.dart';
+
+/// Session-only tag filter for Stats (TAGS_HANDOFF §7.1). It resets on cold
+/// start by design — a remembered filter would make a partial figure read as a
+/// total — so this is a plain [StateProvider] with no persistence.
+final tagFilterProvider = StateProvider<List<String>>((ref) => const []);
 
 /// Short, symbol-less axis label (e.g. `4,8K`, `0`, `-200`) — the currency
 /// symbol on every gridline made labels too wide and they overlapped.
@@ -90,24 +100,202 @@ class _StatsCardState extends ConsumerState<StatsCard> {
       );
     }
 
+    // ── Tags + session filter (§7) ─────────────────────────────────────────
+    final allTags = ref.watch(tagsProvider).valueOrNull ?? const <Tag>[];
+    final tagCounts = ref.watch(tagCountsProvider);
+    final tagsById = ref.watch(tagsByIdProvider);
+    final txTagIds = ref.watch(txTagIdsProvider);
+    final selected = ref.watch(tagFilterProvider);
+    final tagsExist = allTags.isNotEmpty;
+    final filterActive = selected.isNotEmpty;
+
+    bool matches(Transaction tx) {
+      final ids = txTagIds[tx.id];
+      return ids != null && ids.any(selected.contains);
+    }
+
+    void setFilter(List<String> v) =>
+        ref.read(tagFilterProvider.notifier).state = v;
+    void toggle(String id) {
+      final cur = [...selected];
+      if (cur.contains(id)) {
+        cur.remove(id);
+      } else if (cur.length < 3) {
+        cur.add(id);
+      }
+      setFilter(cur);
+    }
+
     final from = _from();
+    // When a filter is active, every element re-reads from the transactions
+    // whose tag set intersects the selection (OR); untagged rows are excluded.
+    // The pure functions still apply the active range via [from].
+    final List<Transaction> seriesTxs =
+        filterActive ? txs.where(matches).toList() : txs;
+
     final series = buildCumulativeSeries(
       sites: sites,
-      transactions: txs,
+      transactions: seriesTxs,
       rateToBase: rates,
       baseCurrency: base,
       from: from,
     );
-    final monthly = buildMonthlyNet(
+    final monthsUnfiltered = buildMonthlyNet(
       sites: sites,
       transactions: txs,
       rateToBase: rates,
       baseCurrency: base,
       from: from,
     );
+    // Keep the full month axis under a filter: months with no matching entry
+    // render as an empty (zero) track so the shape of the year stays readable.
+    final List<MonthlyNet> monthly;
+    if (filterActive) {
+      final filteredByMonth = {
+        for (final m in buildMonthlyNet(
+          sites: sites,
+          transactions: seriesTxs,
+          rateToBase: rates,
+          baseCurrency: base,
+          from: from,
+        ))
+          m.month: m.netBase,
+      };
+      monthly = [
+        for (final m in monthsUnfiltered)
+          MonthlyNet(m.month, filteredByMonth[m.month] ?? 0.0),
+      ];
+    } else {
+      monthly = monthsUnfiltered;
+    }
     final rangeNet = series.isEmpty ? 0.0 : series.last.cumulativeBase;
-    final summaries =
-        ref.watch(portfolioProvider)?.siteSummaries ?? const <String, SiteSummary>{};
+
+    // Per-site figures. Unfiltered keeps the app-wide (all-time) portfolio; a
+    // filter recomputes locally from range + tag scoped transactions and keeps
+    // only sites with at least one match.
+    final Map<String, SiteSummary> summaries;
+    if (filterActive) {
+      final scoped = [
+        for (final tx in seriesTxs)
+          if (from == null || !tx.date.isBefore(from)) tx,
+      ];
+      final fp = computePortfolio(
+        sites: sites,
+        transactions: scoped,
+        rateToBase: rates,
+        baseCurrency: base,
+      );
+      summaries = {
+        for (final e in fp.siteSummaries.entries)
+          if (e.value.transactionCount > 0) e.key: e.value,
+      };
+    } else {
+      summaries = ref.watch(portfolioProvider)?.siteSummaries ??
+          const <String, SiteSummary>{};
+    }
+
+    // Filter active but nothing matched in range → single empty state (§7.3).
+    final emptyUnderFilter = filterActive && series.isEmpty;
+
+    final selectedNames = [
+      for (final id in selected)
+        if (tagsById[id] != null) tagsById[id]!.name,
+    ];
+    final headerNames = selectedNames.length <= 2
+        ? selectedNames.join(', ')
+        : '${selectedNames.take(2).join(', ')} +${selectedNames.length - 2}';
+
+    final motion = Motion.of(context);
+
+    Widget body;
+    if (emptyUnderFilter) {
+      body = Padding(
+        key: const ValueKey('stats-empty'),
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Column(
+          children: [
+            const SuitGlyphMark(size: 48),
+            const SizedBox(height: 16),
+            Text(
+              l10n.noEntriesForTag,
+              style: theme.textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.noEntriesForTagBody,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () => setFilter(const []),
+              child: Text(l10n.clearFilter),
+            ),
+          ],
+        ),
+      );
+    } else {
+      body = Column(
+        key: ValueKey('stats-body:$filterActive:${selected.join(",")}'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.statsNetResult,
+              style: theme.textTheme.labelLarge
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 4),
+          CountUpAmount(
+            value: rangeNet,
+            format: (v) =>
+                formatMajor(v, base, localeName: locale, withSign: true),
+            style: theme.textTheme.headlineMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
+            iconSize: 24,
+          ),
+          const SizedBox(height: 24),
+          if (series.length >= 2) ...[
+            _SectionCard(
+              title: l10n.dashboardProfitOverTime,
+              child: _LineChartBox(series: series, base: base, locale: locale),
+            ),
+            const SizedBox(height: 14),
+          ],
+          _SectionCard(
+            title: l10n.statsBySite,
+            child: _SiteBreakdown(
+              sites: sites,
+              summaries: summaries,
+              rates: rates,
+              base: base,
+              locale: locale,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _BestWorstCards(
+            sites: sites,
+            summaries: summaries,
+            rates: rates,
+            base: base,
+            locale: locale,
+            filtered: filterActive,
+          ),
+          if (monthly.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _SectionCard(
+              title: l10n.statsByMonth,
+              child: _MonthlyBarChart(
+                data: monthly,
+                base: base,
+                locale: locale,
+                showTracks: filterActive,
+              ),
+            ),
+          ],
+        ],
+      );
+    }
 
     return SkeletonSwitcher(
       loading: false,
@@ -115,69 +303,149 @@ class _StatsCardState extends ConsumerState<StatsCard> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
         children: [
-        SizedBox(
-          height: 40,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              for (final r in _Range.values)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(_rangeLabel(r, context)),
-                    selected: _range == r,
-                    onSelected: (_) => setState(() => _range = r),
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                for (final r in _Range.values)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(_rangeLabel(r, context)),
+                      selected: _range == r,
+                      onSelected: (_) => setState(() => _range = r),
+                    ),
                   ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Zero tags anywhere → a single inline discoverability hint replaces
+          // the filter bar (§8.2). Otherwise the real filter bar.
+          if (tagsExist)
+            _TagFilterBar(
+              tags: ([...allTags]..sort((a, b) {
+                    final c = (tagCounts[b.id] ?? 0).compareTo(tagCounts[a.id] ?? 0);
+                    return c != 0
+                        ? c
+                        : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                  }))
+                  .take(12)
+                  .toList(),
+              hasMore: allTags.length > 12,
+              selected: selected,
+              onToggle: toggle,
+              onClear: () => setFilter(const []),
+              onOpenPicker: () => showTagPickerSheet(
+                context,
+                selected: selected,
+                onChanged: setFilter,
+                maxSelection: 3,
+                filterMode: true,
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                l10n.tagsHintStats,
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ),
+          const SizedBox(height: 16),
+          if (tagsExist) ...[
+            Text(
+              filterActive ? l10n.onlyTags(headerNames) : l10n.allTags,
+              style: theme.textTheme.labelMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 8),
+          ],
+          AnimatedSwitcher(
+            duration:
+                motion.reduced ? Duration.zero : const Duration(milliseconds: 180),
+            child: body,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The Stats tag filter strip (§7.1): a wrapping row of filter chips (most-used
+/// first, up to 12 then an "All tags…" chip) with a right-aligned clear button.
+class _TagFilterBar extends StatelessWidget {
+  const _TagFilterBar({
+    required this.tags,
+    required this.hasMore,
+    required this.selected,
+    required this.onToggle,
+    required this.onClear,
+    required this.onOpenPicker,
+  });
+
+  final List<Tag> tags;
+  final bool hasMore;
+  final List<String> selected;
+  final ValueChanged<String> onToggle;
+  final VoidCallback onClear;
+  final VoidCallback onOpenPicker;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+    final atCap = selected.length >= 3;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final t in tags)
+                TagChip(
+                  label: t.name,
+                  variant: TagChipVariant.filter,
+                  dot: t.dot,
+                  selected: selected.contains(t.id),
+                  disabled: atCap && !selected.contains(t.id),
+                  onTap: () => onToggle(t.id),
+                ),
+              if (hasMore)
+                TagChip(
+                  label: l10n.allTags,
+                  variant: TagChipVariant.filter,
+                  onTap: onOpenPicker,
                 ),
             ],
           ),
-        ),
-        const SizedBox(height: 16),
-        Text(l10n.statsNetResult,
-            style: theme.textTheme.labelLarge
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        const SizedBox(height: 4),
-        CountUpAmount(
-          value: rangeNet,
-          format: (v) =>
-              formatMajor(v, base, localeName: locale, withSign: true),
-          style: theme.textTheme.headlineMedium
-              ?.copyWith(fontWeight: FontWeight.w800),
-          iconSize: 24,
-        ),
-        const SizedBox(height: 24),
-        if (series.length >= 2) ...[
-          _SectionCard(
-            title: l10n.dashboardProfitOverTime,
-            child: _LineChartBox(series: series, base: base, locale: locale),
-          ),
-          const SizedBox(height: 14),
-        ],
-        _SectionCard(
-          title: l10n.statsBySite,
-          child: _SiteBreakdown(
-            sites: sites,
-            summaries: summaries,
-            rates: rates,
-            base: base,
-            locale: locale,
-          ),
-        ),
-        const SizedBox(height: 14),
-        _BestWorstCards(
-          sites: sites,
-          summaries: summaries,
-          rates: rates,
-          base: base,
-          locale: locale,
-        ),
-        if (monthly.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          _SectionCard(
-            title: l10n.statsByMonth,
-            child: _MonthlyBarChart(data: monthly, base: base, locale: locale),
-          ),
-        ],
+          if (atCap) ...[
+            const SizedBox(height: 8),
+            Text(
+              l10n.maxTagsFilter,
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ],
+          if (selected.isNotEmpty)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: onClear,
+                child: Text(l10n.tagsClear),
+              ),
+            ),
         ],
       ),
     );
@@ -419,10 +687,15 @@ class _MonthlyBarChart extends StatelessWidget {
     required this.data,
     required this.base,
     required this.locale,
+    this.showTracks = false,
   });
   final List<MonthlyNet> data;
   final String base;
   final String locale;
+
+  /// Draw a faint full-height background track behind every bar so that months
+  /// with no matching entry read as empty slots under an active filter (§7.2).
+  final bool showTracks;
 
   @override
   Widget build(BuildContext context) {
@@ -497,6 +770,14 @@ class _MonthlyBarChart extends StatelessWidget {
                     width: 14,
                     borderRadius: BorderRadius.circular(4),
                     color: data[i].netBase >= 0 ? money.profit : money.loss,
+                    backDrawRodData: showTracks
+                        ? BackgroundBarChartRodData(
+                            show: true,
+                            fromY: -maxAbs,
+                            toY: maxAbs,
+                            color: theme.colorScheme.surfaceContainerHighest,
+                          )
+                        : BackgroundBarChartRodData(),
                   ),
                 ],
               ),
@@ -603,6 +884,7 @@ class _BestWorstCards extends StatelessWidget {
     required this.rates,
     required this.base,
     required this.locale,
+    this.filtered = false,
   });
 
   final List<Site> sites;
@@ -610,6 +892,10 @@ class _BestWorstCards extends StatelessWidget {
   final Map<String, double> rates;
   final String base;
   final String locale;
+
+  /// Under a tag filter a single matching site shows one card, never an
+  /// invented second (§7.2). Unfiltered keeps the original two-card layout.
+  final bool filtered;
 
   @override
   Widget build(BuildContext context) {
@@ -680,6 +966,10 @@ class _BestWorstCards extends StatelessWidget {
       );
     }
 
+    // Under a filter with a single matching site, show one card only — a best
+    // and worst drawn from the same site would be a fabricated comparison.
+    final single = filtered && withNet.length < 2;
+
     // IntrinsicHeight bounds the cross-axis so the two cards can stretch to
     // equal height without an unbounded-height error inside the ListView.
     return IntrinsicHeight(
@@ -693,14 +983,16 @@ class _BestWorstCards extends StatelessWidget {
             bg: money.profitContainer,
             fg: money.onProfitContainer,
           ),
-          const SizedBox(width: 12),
-          card(
-            label: l10n.statsWorstSite,
-            name: worst.site.name,
-            net: worst.netBase,
-            bg: money.lossContainer,
-            fg: money.onLossContainer,
-          ),
+          if (!single) ...[
+            const SizedBox(width: 12),
+            card(
+              label: l10n.statsWorstSite,
+              name: worst.site.name,
+              net: worst.netBase,
+              bg: money.lossContainer,
+              fg: money.onLossContainer,
+            ),
+          ],
         ],
       ),
     );

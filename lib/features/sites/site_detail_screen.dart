@@ -14,10 +14,12 @@ import '../../l10n/l10n_ext.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
+import '../../providers/tags_providers.dart';
 import '../../widgets/count_up_amount.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/mini_card_avatar.dart';
 import '../../widgets/suit_loader.dart';
+import '../../widgets/tag_chip.dart';
 import '../../widgets/undo_snackbar.dart';
 import '../transactions/repeat_last_sheet.dart';
 
@@ -174,6 +176,11 @@ class SiteDetailScreen extends ConsumerWidget {
     required Map<String, int> runningNet,
     required String locale,
   }) {
+    // Resolve each row's tags once here (this method has [ref]); the row is a
+    // plain StatelessWidget and just renders them (§6).
+    final txTagIds = ref.watch(txTagIdsProvider);
+    final tagsById = ref.watch(tagsByIdProvider);
+
     final widgets = <Widget>[];
     String? currentKey;
     for (final (i, tx) in txs.indexed) {
@@ -182,9 +189,14 @@ class SiteDetailScreen extends ConsumerWidget {
         currentKey = key;
         widgets.add(_MonthHeader(date: tx.date, locale: locale));
       }
+      final tags = [
+        for (final id in txTagIds[tx.id] ?? const <String>[])
+          if (tagsById[id] != null) tagsById[id]!,
+      ];
       widgets.add(
         _TransactionRow(
           tx: tx,
+          tags: tags,
           locale: locale,
           runningNet: runningNet[tx.id] ?? 0,
           // Only the most recent row carries the repeat affordance (§1.2).
@@ -408,6 +420,7 @@ class _MonthHeader extends StatelessWidget {
 class _TransactionRow extends StatelessWidget {
   const _TransactionRow({
     required this.tx,
+    required this.tags,
     required this.locale,
     required this.runningNet,
     required this.onTap,
@@ -416,6 +429,10 @@ class _TransactionRow extends StatelessWidget {
   });
 
   final Transaction tx;
+
+  /// This row's tags in assignment order (resolved by the caller). Rendered as
+  /// decorative micro-chips on the subtitle line — the row owns the tap.
+  final List<Tag> tags;
   final String locale;
   final int runningNet;
   final VoidCallback onTap;
@@ -432,10 +449,63 @@ class _TransactionRow extends StatelessWidget {
     final isDeposit = tx.type == TransactionType.deposit;
 
     final dateTime = DateFormat('d MMM · HH:mm', locale).format(tx.date);
-    final subtitle = [
+    final hasNote = tx.note != null && tx.note!.isNotEmpty;
+    // No tags → keep the original single joined subtitle (date · note).
+    final subtitleText = [
       dateTime,
-      if (tx.note != null && tx.note!.isNotEmpty) tx.note!,
+      if (hasNote) tx.note!,
     ].join(' · ');
+
+    // Up to 3 micro-chips share the date line (site detail has no site name on
+    // the row, §1.2), then a plain +N; the note, if any, drops to a third line.
+    const maxChips = 3;
+    final overflow = tags.length - maxChips;
+    Widget subtitle;
+    if (tags.isEmpty) {
+      subtitle = Text(
+        subtitleText,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    } else {
+      final tagLine = Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(dateTime),
+          for (final t in tags.take(maxChips))
+            TagChip(
+              label: t.name,
+              variant: TagChipVariant.micro,
+              dot: t.dot,
+            ),
+          if (overflow > 0)
+            Text(
+              '+$overflow',
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+        ],
+      );
+      subtitle = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Chips are decorative; expose the tag names once on the row instead.
+          Semantics(
+            label: [dateTime, ...tags.map((t) => t.name)].join(', '),
+            child: ExcludeSemantics(child: tagLine),
+          ),
+          if (hasNote)
+            Text(
+              tx.note!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+        ],
+      );
+    }
 
     final signedAmount = formatMinorPlain(
       isDeposit ? -tx.amountMinor : tx.amountMinor,
@@ -502,11 +572,7 @@ class _TransactionRow extends StatelessWidget {
             ),
           ),
           title: Text(isDeposit ? l10n.txTypeDeposit : l10n.txTypeWithdrawal),
-          subtitle: Text(
-            subtitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          subtitle: subtitle,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

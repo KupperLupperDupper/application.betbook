@@ -624,6 +624,98 @@ class AppLocalizationsEn extends AppLocalizations {
   String get repeatThisEntry => 'Repeat this entry';
 
   @override
+  String get tagsLabel => 'Tags';
+
+  @override
+  String get addTag => 'Add tag';
+
+  @override
+  String get searchOrCreateTag => 'Search or create tag';
+
+  @override
+  String createTagNamed(String name) {
+    return 'Create \"$name\"';
+  }
+
+  @override
+  String get allTags => 'All tags';
+
+  @override
+  String onlyTags(String names) {
+    return 'Only: $names';
+  }
+
+  @override
+  String get clearFilter => 'Clear filter';
+
+  @override
+  String get tagsClear => 'Clear';
+
+  @override
+  String get maxTagsPerTx => 'Up to 5 tags per entry.';
+
+  @override
+  String get maxTagsFilter => 'Up to 3 tags at a time.';
+
+  @override
+  String get tagInUse => 'A tag with that name already exists.';
+
+  @override
+  String get tagDeleteTitle => 'Delete tag';
+
+  @override
+  String tagDeleteBody(int count) {
+    return 'The tag is removed from $count entries. The entries are not deleted.';
+  }
+
+  @override
+  String get tagDeletedSnack => 'Tag deleted';
+
+  @override
+  String get tagMergeInto => 'Merge into another tag…';
+
+  @override
+  String tagMergedSnack(String source, String target) {
+    return '$source merged into $target';
+  }
+
+  @override
+  String get tagNoColour => 'No colour';
+
+  @override
+  String get tagsManageTitle => 'Tags';
+
+  @override
+  String get noTagsYet => 'No tags yet';
+
+  @override
+  String get noTagsYetBody => 'Add a tag when you create an entry.';
+
+  @override
+  String get noEntriesForTag => 'No entries with this tag';
+
+  @override
+  String get noEntriesForTagBody => 'Try another period or clear the filter.';
+
+  @override
+  String get tagsHintStats => 'Tag your entries to filter here.';
+
+  @override
+  String get tagsExplainer =>
+      'Tags let you filter Stats — e.g. football or poker.';
+
+  @override
+  String entriesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entries',
+      one: '1 entry',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsImportCsv => 'Import CSV';
 
   @override

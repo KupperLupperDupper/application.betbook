@@ -237,6 +237,47 @@
   "repeatEntry": "Repeat entry",
   "repeatThisEntry": "Repeat this entry",
 
+  "tagsLabel": "Tags",
+  "addTag": "Add tag",
+  "searchOrCreateTag": "Search or create tag",
+  "createTagNamed": "Create \"{name}\"",
+  "@createTagNamed": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "allTags": "All tags",
+  "onlyTags": "Only: {names}",
+  "@onlyTags": {
+    "placeholders": { "names": { "type": "String" } }
+  },
+  "clearFilter": "Clear filter",
+  "tagsClear": "Clear",
+  "maxTagsPerTx": "Up to 5 tags per entry.",
+  "maxTagsFilter": "Up to 3 tags at a time.",
+  "tagInUse": "A tag with that name already exists.",
+  "tagDeleteTitle": "Delete tag",
+  "tagDeleteBody": "The tag is removed from {count} entries. The entries are not deleted.",
+  "@tagDeleteBody": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "tagDeletedSnack": "Tag deleted",
+  "tagMergeInto": "Merge into another tag…",
+  "tagMergedSnack": "{source} merged into {target}",
+  "@tagMergedSnack": {
+    "placeholders": { "source": { "type": "String" }, "target": { "type": "String" } }
+  },
+  "tagNoColour": "No colour",
+  "tagsManageTitle": "Tags",
+  "noTagsYet": "No tags yet",
+  "noTagsYetBody": "Add a tag when you create an entry.",
+  "noEntriesForTag": "No entries with this tag",
+  "noEntriesForTagBody": "Try another period or clear the filter.",
+  "tagsHintStats": "Tag your entries to filter here.",
+  "tagsExplainer": "Tags let you filter Stats — e.g. football or poker.",
+  "entriesCount": "{count, plural, =1{1 entry} other{{count} entries}}",
+  "@entriesCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
   "settingsImportCsv": "Import CSV",
   "settingsImportCsvSubtitle": "Add transactions from a CSV file",
   "csvImportConfirm": "Transactions in the file will be added to your current data. Sites are matched by name and created when missing.",

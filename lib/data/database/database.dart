@@ -10,7 +10,8 @@ import 'tables.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [Sites, Transactions, ExchangeRates])
+@DriftDatabase(
+    tables: [Sites, Transactions, ExchangeRates, Tags, TransactionTags])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
@@ -18,10 +19,25 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) async {
+          await m.createAll();
+          await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_tt_tag ON transaction_tags(tag_id)');
+        },
+        onUpgrade: (m, from, to) async {
+          // v2: tags + transaction_tags join + sites.default_tag_id.
+          if (from < 2) {
+            await m.createTable(tags);
+            await m.createTable(transactionTags);
+            await m.addColumn(sites, sites.defaultTagId);
+            await customStatement(
+                'CREATE INDEX IF NOT EXISTS idx_tt_tag ON transaction_tags(tag_id)');
+          }
+        },
         beforeOpen: (details) async {
           // Required for `onDelete: cascade` to actually fire in SQLite.
           await customStatement('PRAGMA foreign_keys = ON');
@@ -146,14 +162,112 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // ---------------------------------------------------------------------------
+  // Tags
+  // ---------------------------------------------------------------------------
+
+  Stream<List<Tag>> watchTags() =>
+      (select(tags)..orderBy([(t) => OrderingTerm(expression: t.name)]))
+          .watch();
+
+  Future<List<Tag>> getTags() => select(tags).get();
+
+  Future<Tag?> getTagByFolded(String folded) =>
+      (select(tags)..where((t) => t.nameFolded.equals(folded)))
+          .getSingleOrNull();
+
+  Future<void> upsertTag(TagsCompanion tag) =>
+      into(tags).insertOnConflictUpdate(tag);
+
+  Future<void> deleteTagById(String id) =>
+      (delete(tags)..where((t) => t.id.equals(id))).go();
+
+  /// All join rows — provider-side we fold these into per-transaction tag sets
+  /// and per-tag counts (one stream, no N+1).
+  Stream<List<TransactionTag>> watchTransactionTags() =>
+      select(transactionTags).watch();
+
+  Future<List<TransactionTag>> getTransactionTagsForTag(String tagId) =>
+      (select(transactionTags)..where((t) => t.tagId.equals(tagId))).get();
+
+  Future<List<String>> tagIdsForTransaction(String txId) async {
+    final rows = await (select(transactionTags)
+          ..where((t) => t.transactionId.equals(txId))
+          ..orderBy([(t) => OrderingTerm(expression: t.position)]))
+        .get();
+    return [for (final r in rows) r.tagId];
+  }
+
+  /// Replaces a transaction's tag set, preserving order via [position].
+  Future<void> setTransactionTags(String txId, List<String> tagIds) async {
+    await transaction(() async {
+      await (delete(transactionTags)
+            ..where((t) => t.transactionId.equals(txId)))
+          .go();
+      await batch((b) {
+        for (var i = 0; i < tagIds.length; i++) {
+          b.insert(
+            transactionTags,
+            TransactionTagsCompanion.insert(
+              transactionId: txId,
+              tagId: tagIds[i],
+              position: Value(i),
+            ),
+          );
+        }
+      });
+    });
+  }
+
+  /// Re-inserts a deleted tag and every assignment it carried (Undo).
+  Future<void> restoreTagWithAssignments(
+      Tag tag, List<TransactionTag> joins) async {
+    await transaction(() async {
+      await into(tags).insertOnConflictUpdate(tag.toCompanion(true));
+      await batch((b) => b.insertAllOnConflictUpdate(
+          transactionTags, [for (final j in joins) j.toCompanion(true)]));
+    });
+  }
+
+  /// Moves every assignment from [sourceId] to [targetId] (deduping), moves any
+  /// site defaults, then deletes the source tag.
+  Future<void> mergeTags(String sourceId, String targetId) async {
+    await transaction(() async {
+      final sourceJoins = await (select(transactionTags)
+            ..where((t) => t.tagId.equals(sourceId)))
+          .get();
+      for (final j in sourceJoins) {
+        final exists = await (select(transactionTags)
+              ..where((t) =>
+                  t.transactionId.equals(j.transactionId) &
+                  t.tagId.equals(targetId)))
+            .getSingleOrNull();
+        if (exists == null) {
+          await into(transactionTags).insert(
+            TransactionTagsCompanion.insert(
+              transactionId: j.transactionId,
+              tagId: targetId,
+              position: Value(j.position),
+            ),
+          );
+        }
+      }
+      await (update(sites)..where((s) => s.defaultTagId.equals(sourceId)))
+          .write(SitesCompanion(defaultTagId: Value(targetId)));
+      await (delete(tags)..where((t) => t.id.equals(sourceId))).go();
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // Bulk / maintenance
   // ---------------------------------------------------------------------------
 
   Future<void> clearAll() async {
     await transaction(() async {
+      await delete(transactionTags).go();
       await delete(transactions).go();
       await delete(sites).go();
       await delete(exchangeRates).go();
+      await delete(tags).go();
     });
   }
 
