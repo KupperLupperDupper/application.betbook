@@ -20,6 +20,7 @@ class PlayingCard extends StatelessWidget {
     this.subtitle,
     required this.child,
     this.edgeLift = 1.0,
+    this.settle = 0.0,
   });
 
   final CardSuit suit;
@@ -31,6 +32,11 @@ class PlayingCard extends StatelessWidget {
   /// physically on top of the stack (MOTION_HANDOFF §1.1 / §6).
   final double edgeLift;
 
+  /// 0 → 1 → 0 pulse on the card that just landed (MOTION_HANDOFF §1.5): the
+  /// hairline brightens toward [DeckSurface.hairlineSettle] and returns. Stroke
+  /// only — never the fill. Stays 0 under reduced motion.
+  final double settle;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -38,8 +44,11 @@ class PlayingCard extends StatelessWidget {
     final brightness = theme.brightness;
 
     final hairlineBase = DeckSurface.hairline(brightness);
-    final hairline =
-        hairlineBase.withValues(alpha: hairlineBase.a * edgeLift);
+    var hairline = hairlineBase.withValues(alpha: hairlineBase.a * edgeLift);
+    if (settle > 0) {
+      hairline =
+          Color.lerp(hairline, DeckSurface.hairlineSettle(brightness), settle)!;
+    }
 
     return Padding(
       padding: const EdgeInsets.only(top: 6, bottom: 12, left: 6, right: 6),

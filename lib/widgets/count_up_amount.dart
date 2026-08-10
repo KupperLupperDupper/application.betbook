@@ -11,6 +11,13 @@ import '../core/theme/money_colors.dart';
 /// previously-displayed value → the new value on later changes (§5.1). When the
 /// sign flips it runs a two-leg colour lerp through `neutral` (§5.2). Sign and
 /// trend icon are fixed to the final state at frame 0 so only the digits move.
+///
+/// A [secondary] figure is part of the staggered count-up wave (§5.3): it only
+/// counts the digits — colour and sign are the final state from frame 0, it
+/// never crosses zero, and it does not announce a `liveRegion` (only the hero
+/// does). Pass [delay] for its place in the wave and [duration] for its length
+/// (`Motion.of(context).countUpDelay(i)` / `countUpFor(i)`); a [duration] of
+/// `Duration.zero` renders the final value immediately (used past the cap).
 class CountUpAmount extends StatefulWidget {
   const CountUpAmount({
     super.key,
@@ -19,6 +26,10 @@ class CountUpAmount extends StatefulWidget {
     this.style,
     this.iconSize = 30,
     this.showIcon = true,
+    this.secondary = false,
+    this.delay = Duration.zero,
+    this.duration,
+    this.color,
   });
 
   /// Raw amount in BASE major units.
@@ -31,6 +42,21 @@ class CountUpAmount extends StatefulWidget {
   final TextStyle? style;
   final double iconSize;
   final bool showIcon;
+
+  /// Secondary figures animate the digits only: colour + sign are final from
+  /// frame 0, no zero-crossing lerp, no `liveRegion` announcement.
+  final bool secondary;
+
+  /// Wait this long after the trigger before counting (the wave stagger).
+  final Duration delay;
+
+  /// Overrides the count duration. Defaults to the hero 400 ms (`Motion.countUp`).
+  /// `Duration.zero` renders the final value immediately (no animation).
+  final Duration? duration;
+
+  /// Fixed final colour. When null a net figure uses `money.forAmount(value)`;
+  /// pass `onSurface` for neutral totals that must never take a profit/loss hue.
+  final Color? color;
 
   @override
   State<CountUpAmount> createState() => _CountUpAmountState();
@@ -62,14 +88,7 @@ class _CountUpAmountState extends State<CountUpAmount>
     super.didChangeDependencies();
     if (_initialized) return;
     _initialized = true;
-    final motion = Motion.of(context);
-    if (motion.reduced || motion.countUp == Duration.zero) {
-      _from = _to;
-      _controller.value = 1;
-    } else {
-      _controller.duration = motion.countUp;
-      _controller.forward(from: 0);
-    }
+    _startCount(Motion.of(context));
   }
 
   @override
@@ -84,15 +103,28 @@ class _CountUpAmountState extends State<CountUpAmount>
       return;
     }
     _firstAnim = false;
-    final motion = Motion.of(context);
     _from = _displayedValue();
     _to = widget.value;
-    if (motion.reduced || motion.countUp == Duration.zero) {
+    _startCount(Motion.of(context));
+  }
+
+  /// Starts (or, after [CountUpAmount.delay], schedules) the count, honouring
+  /// reduced motion and a zero duration by snapping to the final value.
+  void _startCount(Motion motion) {
+    final dur = widget.duration ?? motion.countUp;
+    if (motion.reduced || dur == Duration.zero) {
       _from = _to;
       _controller.value = 1;
-    } else {
-      _controller.duration = motion.countUp;
+      return;
+    }
+    _controller.duration = dur;
+    if (widget.delay == Duration.zero) {
       _controller.forward(from: 0);
+    } else {
+      _controller.value = 0; // hold the start value until the stagger elapses
+      Future.delayed(widget.delay, () {
+        if (mounted) _controller.forward(from: 0);
+      });
     }
   }
 
@@ -122,9 +154,11 @@ class _CountUpAmountState extends State<CountUpAmount>
     final motion = Motion.of(context);
     final money = context.money;
 
-    final newColor = money.forAmount(widget.value);
-    final oldColor = money.forAmount(_from);
-    final crossing = !_firstAnim && _sign(_from) != _sign(_to);
+    final newColor = widget.color ?? money.forAmount(widget.value);
+    final oldColor = widget.color ?? money.forAmount(_from);
+    // Secondary figures never animate colour — only the hero may cross zero.
+    final crossing =
+        !widget.secondary && !_firstAnim && _sign(_from) != _sign(_to);
 
     // Sign + icon are held at the final state (§5.2). Exact zero is flat.
     final finalIcon = widget.value == 0
@@ -160,7 +194,9 @@ class _CountUpAmountState extends State<CountUpAmount>
         final figure = Stack(
           alignment: Alignment.centerLeft,
           children: [
-            Opacity(opacity: 0, child: Text(sizer, style: figureStyle)),
+            ExcludeSemantics(
+              child: Opacity(opacity: 0, child: Text(sizer, style: figureStyle)),
+            ),
             ExcludeSemantics(
               child: Text(
                 widget.format(value),
@@ -181,8 +217,10 @@ class _CountUpAmountState extends State<CountUpAmount>
       },
     );
 
+    // The animating text is excluded; a sibling label carries the value. Only
+    // the hero announces on change (liveRegion); secondaries are read on focus.
     return Semantics(
-      liveRegion: true,
+      liveRegion: !widget.secondary,
       label: widget.format(widget.value),
       child: animated,
     );

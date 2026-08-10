@@ -63,7 +63,7 @@ class SitesCard extends ConsumerWidget {
                 ],
               ),
             ),
-            for (final site in sites)
+            for (final (i, site) in sites.indexed)
               SiteTile(
                 site: site,
                 summary: portfolio.siteSummaries[site.id] ??
@@ -75,6 +75,8 @@ class SitesCard extends ConsumerWidget {
                       transactionCount: 0,
                     ),
                 localeName: locale,
+                countUpIndex: i,
+                countUpListRow: true,
                 onTap: () => context.push(Routes.siteDetail(site.id)),
               ),
           ],

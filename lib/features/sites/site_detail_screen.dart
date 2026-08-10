@@ -14,6 +14,7 @@ import '../../l10n/l10n_ext.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
+import '../../widgets/count_up_amount.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/mini_card_avatar.dart';
 import '../../widgets/suit_loader.dart';
@@ -197,10 +198,35 @@ class _HeroCard extends StatelessWidget {
   final int withdrawnMinor;
   final String locale;
 
+  /// A secondary count-up figure for a hero stat: counts the digits but stays
+  /// `onSurface` (deposited/withdrawn are cash movements, not outcomes).
+  Widget _heroStatFigure(
+    BuildContext context,
+    Motion motion,
+    int minor, {
+    required int countUpIndex,
+  }) {
+    final theme = Theme.of(context);
+    return CountUpAmount(
+      value: minorToMajor(minor),
+      format: (v) => formatMinorPlain(majorToMinor(v), localeName: locale),
+      style: theme.textTheme.titleMedium
+          ?.copyWith(color: theme.colorScheme.onSurface),
+      secondary: true,
+      showIcon: false,
+      color: theme.colorScheme.onSurface,
+      delay: motion.countUpDelay(countUpIndex),
+      duration: countUpIndex < Motion.countUpMaxFigures
+          ? motion.countUpFor(countUpIndex)
+          : Duration.zero,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final motion = Motion.of(context);
     final netColor = context.money.forAmount(netMinor);
 
     return Container(
@@ -241,16 +267,20 @@ class _HeroCard extends StatelessWidget {
                 size: 26,
               ),
               const SizedBox(width: 8),
+              // Hero net (i = 0): counts up (may cross zero); the icon above is
+              // held final. Colour comes from money.forAmount, not pinned.
               Expanded(
-                child: Text(
-                  formatMinor(netMinor, site.currencyCode,
+                child: CountUpAmount(
+                  value: minorToMajor(netMinor),
+                  format: (v) => formatMinor(majorToMinor(v), site.currencyCode,
                       localeName: locale, withSign: true),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 34,
                     fontWeight: FontWeight.w800,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    color: netColor,
                   ),
+                  showIcon: false,
+                  delay: motion.countUpDelay(0),
+                  duration: motion.countUpFor(0),
                 ),
               ),
             ],
@@ -261,19 +291,36 @@ class _HeroCard extends StatelessWidget {
               Expanded(
                 child: _HeroStat(
                   label: l10n.dashboardTotalDeposited,
-                  value: formatMinorPlain(depositedMinor, localeName: locale),
+                  // Deposited (i = 1): counts up, stays onSurface (a cash
+                  // movement, not an outcome — no profit/loss colour).
+                  value: _heroStatFigure(
+                    context,
+                    motion,
+                    depositedMinor,
+                    countUpIndex: 1,
+                  ),
                 ),
               ),
               Expanded(
                 child: _HeroStat(
                   label: l10n.dashboardTotalWithdrawn,
-                  value: formatMinorPlain(withdrawnMinor, localeName: locale),
+                  // Withdrawn (i = 2): same treatment.
+                  value: _heroStatFigure(
+                    context,
+                    motion,
+                    withdrawnMinor,
+                    countUpIndex: 2,
+                  ),
                 ),
               ),
               Expanded(
                 child: _HeroStat(
                   label: l10n.commonCurrency,
-                  value: site.currencyCode,
+                  value: Text(
+                    site.currencyCode,
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(color: theme.colorScheme.onSurface),
+                  ),
                 ),
               ),
             ],
@@ -288,7 +335,7 @@ class _HeroStat extends StatelessWidget {
   const _HeroStat({required this.label, required this.value});
 
   final String label;
-  final String value;
+  final Widget value;
 
   @override
   Widget build(BuildContext context) {
@@ -302,11 +349,7 @@ class _HeroStat extends StatelessWidget {
               ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 2),
-        Text(
-          value,
-          style: theme.textTheme.titleMedium
-              ?.copyWith(color: theme.colorScheme.onSurface),
-        ),
+        value,
       ],
     );
   }

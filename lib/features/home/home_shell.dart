@@ -39,7 +39,7 @@ class HomeShell extends ConsumerStatefulWidget {
 }
 
 class _HomeShellState extends ConsumerState<HomeShell>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _controller =
       PageController(viewportFraction: AppDeck.viewportFraction);
   int _index = 0;
@@ -50,6 +50,21 @@ class _HomeShellState extends ConsumerState<HomeShell>
     duration: const Duration(milliseconds: 800),
   );
   bool _dealDecided = false;
+
+  // Settle emphasis (§1.5): a 420 ms hairline pulse on the card that just
+  // landed, fired concurrently with the settle haptic. Only the card at
+  // [_settleIndex] reacts.
+  late final AnimationController _settle = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  );
+  int _settleIndex = 0;
+
+  void _emphasise(int i) {
+    if (!Motion.of(context).settleEmphasis) return;
+    _settleIndex = i;
+    _settle.forward(from: 0.0);
+  }
 
   // Deck order: Dashboard ♠ · Sites ♥ · Stats ♦ · Settings ♣
   static final _sections = <_Section>[
@@ -89,13 +104,19 @@ class _HomeShellState extends ConsumerState<HomeShell>
       // otherwise a slow cold start consumes the animation behind the splash.
       _dealIn.value = 0.0;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _dealIn.forward();
+        if (mounted) {
+          // The Dashboard card lands last — flick its hairline as it settles.
+          _dealIn.forward().whenComplete(() {
+            if (mounted) _emphasise(_index);
+          });
+        }
       });
     }
   }
 
   @override
   void dispose() {
+    _settle.dispose();
     _dealIn.dispose();
     _controller.dispose();
     super.dispose();
@@ -103,21 +124,24 @@ class _HomeShellState extends ConsumerState<HomeShell>
 
   void _goTo(int i) {
     Motion.tick();
-    final reduced = Motion.of(context).reduced;
-    if (reduced) {
+    final m = Motion.of(context);
+    if (m.reduced) {
       _controller.jumpToPage(i);
       return;
     }
     final far = (i - _index).abs() >= 2;
     _controller.animateToPage(
       i,
-      duration: Duration(milliseconds: far ? 380 : 320),
+      duration: far ? m.deckPageJumpFar : m.deckPageJump,
       curve: Motion.entrance,
     );
   }
 
   void _onPageChanged(int i) {
-    if (i != _index) Motion.tick();
+    if (i != _index) {
+      Motion.tick();
+      _emphasise(i);
+    }
     setState(() => _index = i);
     // A swipe cancels any in-flight deal-in and hands control to the PageView.
     if (_dealIn.isAnimating) {
@@ -159,6 +183,8 @@ class _HomeShellState extends ConsumerState<HomeShell>
                 return _AnimatedDeckItem(
                   controller: _controller,
                   dealIn: _dealIn,
+                  settle: _settle,
+                  settleIndex: _settleIndex,
                   index: i,
                   currentIndex: _index,
                   suit: section.suit,
@@ -247,6 +273,8 @@ class _AnimatedDeckItem extends StatelessWidget {
   const _AnimatedDeckItem({
     required this.controller,
     required this.dealIn,
+    required this.settle,
+    required this.settleIndex,
     required this.index,
     required this.currentIndex,
     required this.suit,
@@ -256,17 +284,31 @@ class _AnimatedDeckItem extends StatelessWidget {
 
   final PageController controller;
   final Animation<double> dealIn;
+  final Animation<double> settle;
+  final int settleIndex;
   final int index;
   final int currentIndex;
   final CardSuit suit;
   final String label;
   final Widget content;
 
+  /// Maps the 420 ms settle controller (0→1) to a hairline intensity that
+  /// rises (140 ms, easeOutCubic), holds (60 ms), then falls (220 ms,
+  /// easeOutSine) — the §1.5 emphasis envelope.
+  double _settleIntensity(double v) {
+    const inEnd = 140 / 420;
+    const holdEnd = 200 / 420;
+    if (v <= inEnd) return Curves.easeOutCubic.transform(v / inEnd);
+    if (v <= holdEnd) return 1.0;
+    final out = (v - holdEnd) / (1 - holdEnd);
+    return 1.0 - Motion.settleRelease.transform(out.clamp(0.0, 1.0));
+  }
+
   @override
   Widget build(BuildContext context) {
     final reduced = Motion.of(context).reduced;
     return AnimatedBuilder(
-      animation: Listenable.merge([controller, dealIn]),
+      animation: Listenable.merge([controller, dealIn, settle]),
       child: content,
       builder: (context, content) {
         final page = (controller.hasClients && controller.position.haveDimensions)
@@ -281,22 +323,28 @@ class _AnimatedDeckItem extends StatelessWidget {
         var edgeLift = reduced
             ? 1.0
             : DeckTransform.hairlineOpacity(offset).clamp(0.40, 1.0);
-        var translate = Offset.zero;
+        // Neighbours sit lower in the stack (§1.1 stack drop).
+        var translate =
+            reduced ? Offset.zero : Offset(0, DeckTransform.stackDrop(offset));
 
         // Deal-in entry (back-to-front: ♣ ♦ ♥ ♠). Skipped when reduced.
         if (!reduced && dealIn.value < 1.0) {
           final vMs = dealIn.value * 800;
-          final delayMs = 70.0 * (3 - index);
-          final tEntry = ((vMs - delayMs) / 380).clamp(0.0, 1.0);
+          final delayMs = 110.0 * (3 - index);
+          final tEntry = ((vMs - delayMs) / 460).clamp(0.0, 1.0);
           final e = Curves.easeOutCubic.transform(tEntry);
           scale *= lerpDouble(DealIn.fromScale, 1.0, e)!;
           opacity *= e;
           tilt += lerpDouble(DealIn.fromRotation, 0.0, e)!;
-          translate = Offset(
+          translate += Offset(
             DealIn.fromOffset.dx * (1 - e),
             DealIn.fromOffset.dy * (1 - e),
           );
         }
+
+        final settleValue = (!reduced && index == settleIndex)
+            ? _settleIntensity(settle.value)
+            : 0.0;
 
         return Opacity(
           opacity: opacity,
@@ -312,6 +360,7 @@ class _AnimatedDeckItem extends StatelessWidget {
                   suit: suit,
                   label: label,
                   edgeLift: edgeLift,
+                  settle: settleValue,
                   child: content!,
                 ),
               ),

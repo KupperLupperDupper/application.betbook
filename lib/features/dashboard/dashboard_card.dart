@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/routes.dart';
 import '../../core/money/money_format.dart';
 import '../../core/stats/summaries.dart';
+import '../../core/theme/deck_motion.dart';
 import '../../core/theme/money_colors.dart';
 import '../../data/database/database.dart';
 import '../../l10n/l10n_ext.dart';
@@ -68,6 +69,7 @@ class _DashboardBody extends ConsumerWidget {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final money = context.money;
+    final motion = Motion.of(context);
     final base = portfolio.baseCurrency;
     final net = portfolio.netBase;
 
@@ -117,6 +119,8 @@ class _DashboardBody extends ConsumerWidget {
               letterSpacing: -1,
             ),
             iconSize: 30,
+            delay: motion.countUpDelay(0),
+            duration: motion.countUpFor(0),
           ),
         ),
         const SizedBox(height: 6),
@@ -131,16 +135,20 @@ class _DashboardBody extends ConsumerWidget {
             Expanded(
               child: _StatCard(
                 label: l10n.dashboardTotalDeposited,
-                value: formatMajorSmart(portfolio.depositedBase, base,
-                    localeName: localeName),
+                value: portfolio.depositedBase,
+                format: (v) =>
+                    formatMajorSmart(v, base, localeName: localeName),
+                countUpIndex: 1,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _StatCard(
                 label: l10n.dashboardTotalWithdrawn,
-                value: formatMajorSmart(portfolio.withdrawnBase, base,
-                    localeName: localeName),
+                value: portfolio.withdrawnBase,
+                format: (v) =>
+                    formatMajorSmart(v, base, localeName: localeName),
+                countUpIndex: 2,
               ),
             ),
           ],
@@ -155,11 +163,14 @@ class _DashboardBody extends ConsumerWidget {
           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 4),
-        for (final site in visible)
+        // The wave continues into the site rows: hero (0), deposited (1),
+        // withdrawn (2), then these figures at 3, 4, … (cap 6 stops the rest).
+        for (final (i, site) in visible.indexed)
           SiteTile(
             site: site,
             summary: summaries[site.id]!,
             localeName: localeName,
+            countUpIndex: i + 3,
             onTap: () => context.push(Routes.siteDetail(site.id)),
           ),
       ],
@@ -168,13 +179,24 @@ class _DashboardBody extends ConsumerWidget {
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.label, required this.value});
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.format,
+    required this.countUpIndex,
+  });
   final String label;
-  final String value;
+
+  /// Raw total in base major units; counts up but stays `onSurface` (it is a
+  /// cash movement, not an outcome — no profit/loss colour, no sign).
+  final double value;
+  final String Function(double) format;
+  final int countUpIndex;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final motion = Motion.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -193,13 +215,21 @@ class _StatCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              fontFeatures: const [FontFeature.tabularFigures()],
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: CountUpAmount(
+              value: value,
+              format: format,
+              secondary: true,
+              showIcon: false,
+              color: theme.colorScheme.onSurface,
+              style: theme.textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
+              delay: motion.countUpDelay(countUpIndex),
+              duration: countUpIndex < Motion.countUpMaxFigures
+                  ? motion.countUpFor(countUpIndex)
+                  : Duration.zero,
             ),
           ),
         ],
