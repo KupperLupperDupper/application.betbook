@@ -85,7 +85,12 @@ class _HomeShellState extends ConsumerState<HomeShell>
       _dealIn.value = 1.0;
     } else {
       _deckDealtThisProcess = true;
-      _dealIn.forward();
+      // Start once the deck is actually painted (and the native splash gone),
+      // otherwise a slow cold start consumes the animation behind the splash.
+      _dealIn.value = 0.0;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _dealIn.forward();
+      });
     }
   }
 
