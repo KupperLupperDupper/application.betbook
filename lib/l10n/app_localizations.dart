@@ -1154,6 +1154,36 @@ abstract class AppLocalizations {
   /// **'That file isn\'t a valid BetBook backup'**
   String get backupInvalidFile;
 
+  /// No description provided for @settingsImportCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Import CSV'**
+  String get settingsImportCsv;
+
+  /// No description provided for @settingsImportCsvSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add transactions from a CSV file'**
+  String get settingsImportCsvSubtitle;
+
+  /// No description provided for @csvImportConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Transactions in the file will be added to your current data. Sites are matched by name and created when missing.'**
+  String get csvImportConfirm;
+
+  /// No description provided for @csvImportAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 transaction added} other{{count} transactions added}}'**
+  String csvImportAdded(int count);
+
+  /// No description provided for @csvImportSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 row skipped} other{{count} rows skipped}}'**
+  String csvImportSkipped(int count);
+
   /// No description provided for @toastSaved.
   ///
   /// In en, this message translates to:

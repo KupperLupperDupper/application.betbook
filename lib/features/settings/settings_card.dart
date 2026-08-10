@@ -160,6 +160,12 @@ class SettingsCard extends ConsumerWidget {
               onTap: () => _importBackup(context, ref),
             ),
             ListTile(
+              leading: const Icon(Icons.playlist_add_rounded),
+              title: Text(l10n.settingsImportCsv),
+              subtitle: Text(l10n.settingsImportCsvSubtitle),
+              onTap: () => _importCsv(context, ref),
+            ),
+            ListTile(
               leading: Icon(Icons.delete_forever_rounded,
                   color: Theme.of(context).colorScheme.error),
               title: Text(l10n.settingsClearData,
@@ -359,6 +365,46 @@ class SettingsCard extends ConsumerWidget {
       final content = await file.readAsString();
       await ref.read(backupServiceProvider).importFromJson(content);
       if (context.mounted) _toast(context, l10n.backupImportSuccess);
+    } catch (_) {
+      if (context.mounted) _toast(context, l10n.backupInvalidFile);
+    }
+  }
+
+  Future<void> _importCsv(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
+    final base = ref.read(settingsProvider).baseCurrency;
+    const group = XTypeGroup(label: 'CSV', extensions: ['csv']);
+    final file = await openFile(acceptedTypeGroups: [group]);
+    if (file == null || !context.mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.settingsImportCsv),
+        content: Text(l10n.csvImportConfirm),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.actionCancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.actionConfirm)),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      final content = await file.readAsString();
+      final result = await ref
+          .read(backupServiceProvider)
+          .importTransactionsCsv(content, baseCurrency: base);
+      if (!context.mounted) return;
+      final msg = result.skippedRows > 0
+          ? '${l10n.csvImportAdded(result.transactionsAdded)} · '
+              '${l10n.csvImportSkipped(result.skippedRows)}'
+          : l10n.csvImportAdded(result.transactionsAdded);
+      _toast(context, msg);
     } catch (_) {
       if (context.mounted) _toast(context, l10n.backupInvalidFile);
     }

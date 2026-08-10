@@ -222,6 +222,18 @@
   "backupImportConfirm": "Importing replaces all current data with the backup's contents. Continue?",
   "backupInvalidFile": "That file isn't a valid BetBook backup",
 
+  "settingsImportCsv": "Import CSV",
+  "settingsImportCsvSubtitle": "Add transactions from a CSV file",
+  "csvImportConfirm": "Transactions in the file will be added to your current data. Sites are matched by name and created when missing.",
+  "csvImportAdded": "{count, plural, =1{1 transaction added} other{{count} transactions added}}",
+  "@csvImportAdded": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "csvImportSkipped": "{count, plural, =1{1 row skipped} other{{count} rows skipped}}",
+  "@csvImportSkipped": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
   "toastSaved": "Saved",
   "toastDeleted": "Deleted"
 }

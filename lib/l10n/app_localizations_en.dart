@@ -589,6 +589,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupInvalidFile => 'That file isn\'t a valid BetBook backup';
 
   @override
+  String get settingsImportCsv => 'Import CSV';
+
+  @override
+  String get settingsImportCsvSubtitle => 'Add transactions from a CSV file';
+
+  @override
+  String get csvImportConfirm =>
+      'Transactions in the file will be added to your current data. Sites are matched by name and created when missing.';
+
+  @override
+  String csvImportAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count transactions added',
+      one: '1 transaction added',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String csvImportSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count rows skipped',
+      one: '1 row skipped',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get toastSaved => 'Saved';
 
   @override

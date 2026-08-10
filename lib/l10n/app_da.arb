@@ -222,6 +222,18 @@
   "backupImportConfirm": "Import erstatter alle nuværende data med backuppens indhold. Fortsæt?",
   "backupInvalidFile": "Filen er ikke en gyldig BetBook-backup",
 
+  "settingsImportCsv": "Importér CSV",
+  "settingsImportCsvSubtitle": "Tilføj transaktioner fra en CSV-fil",
+  "csvImportConfirm": "Transaktioner i filen føjes til dine nuværende data. Sider matches på navn og oprettes hvis de mangler.",
+  "csvImportAdded": "{count, plural, =1{1 transaktion tilføjet} other{{count} transaktioner tilføjet}}",
+  "@csvImportAdded": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "csvImportSkipped": "{count, plural, =1{1 række sprunget over} other{{count} rækker sprunget over}}",
+  "@csvImportSkipped": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
   "toastSaved": "Gemt",
   "toastDeleted": "Slettet"
 }

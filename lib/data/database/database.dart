@@ -157,6 +157,20 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  /// Adds sites and transactions without touching existing data — used by the
+  /// additive CSV import (which merges rows in rather than replacing the DB).
+  Future<void> addImported({
+    required List<SitesCompanion> newSites,
+    required List<TransactionsCompanion> newTransactions,
+  }) async {
+    await transaction(() async {
+      await batch((b) {
+        b.insertAll(sites, newSites);
+        b.insertAll(transactions, newTransactions);
+      });
+    });
+  }
+
   /// Replaces the entire database contents in a single transaction.
   /// Used when importing a backup.
   Future<void> replaceAll({
