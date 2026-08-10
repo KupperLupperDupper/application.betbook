@@ -278,6 +278,77 @@
     "placeholders": { "count": { "type": "int" } }
   },
 
+  "reminders": "Påmindelser",
+  "weeklySummary": "Ugentligt overblik",
+  "weeklySummarySub": "Hver mandag kl. 09.00",
+  "limitWarnings": "Advarsler om grænser",
+  "limitWarningsSub": "Ved 80% og 100% af din indbetalingsgrænse",
+  "setLimitFirst": "Sæt en grænse først",
+  "notifRationaleTitle": "Påmindelser på din telefon",
+  "notifRationaleBody": "BetBook laver påmindelserne på din telefon. Intet sendes til en server, og der er ingen konto.",
+  "notNow": "Ikke nu",
+  "continueLabel": "Fortsæt",
+  "notifDisabledSystem": "Påmindelser er slået fra i systemindstillinger.",
+  "openSettings": "Åbn indstillinger",
+  "weeklyChannelName": "Ugentligt overblik",
+  "weeklyChannelDesc": "Din uge i tal, én gang om ugen",
+  "limitChannelName": "Advarsler om grænser",
+  "limitChannelDesc": "Når du nærmer dig eller når en grænse, du har sat",
+  "lastWeek": "Sidste uge",
+  "seeTheWeek": "Se ugen",
+  "noEntriesLastWeek": "Ingen posteringer sidste uge.",
+  "weeklyNudgeBody": "Tryk for at se din uge.",
+  "weeklyLossBody": "Du er nede {amount} på {sites, plural, =1{1 site} other{{sites} sites}}.",
+  "@weeklyLossBody": {
+    "placeholders": { "amount": { "type": "String" }, "sites": { "type": "int" } }
+  },
+  "weeklyWinBody": "Du er oppe {amount} på {sites, plural, =1{1 site} other{{sites} sites}}.",
+  "@weeklyWinBody": {
+    "placeholders": { "amount": { "type": "String" }, "sites": { "type": "int" } }
+  },
+  "weeklyEvenBody": "Ind- og udbetalinger gik lige op.",
+  "limitPeriodDay": "dag",
+  "limitPeriodWeek": "uge",
+  "limitPeriodMonth": "måned",
+  "limitApproachTitle": "Du har brugt 80% af din indbetalingsgrænse",
+  "limitApproachBody": "{used} af {limit} denne {period}. Din grænse ligger i Indstillinger, hvis du vil ændre den.",
+  "@limitApproachBody": {
+    "placeholders": { "used": { "type": "String" }, "limit": { "type": "String" }, "period": { "type": "String" } }
+  },
+  "limitReachedTitle": "Du har nået din indbetalingsgrænse",
+  "limitReachedBody": "{used} af {limit} denne {period}. Tag en pause eller ændr din grænse — begge findes i Indstillinger.",
+  "@limitReachedBody": {
+    "placeholders": { "used": { "type": "String" }, "limit": { "type": "String" }, "period": { "type": "String" } }
+  },
+  "netLossTitle": "Dit nettotab er over {amount}",
+  "@netLossTitle": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "netLossBody": "Det er den grænse, du har sat. Tryk for at se dine grænser.",
+  "limitUsedPct": "{pct}% af din grænse brugt",
+  "@limitUsedPct": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "limitReachedLabel": "Din grænse er nået",
+  "netLossLabel": "Din nettotabsgrænse",
+  "limitFigureLine": "{used} af {limit} denne {period}",
+  "@limitFigureLine": {
+    "placeholders": { "used": { "type": "String" }, "limit": { "type": "String" }, "period": { "type": "String" } }
+  },
+  "adjust": "Justér",
+  "takeABreak": "Tag en pause",
+  "takeABreakSub": "Skjul totaler og pause påmindelser",
+  "takeABreakDesc": "Totaler skjules, og påmindelser sættes på pause. Du kan stadig registrere, og du kan afslutte pausen når som helst.",
+  "breakOption24h": "24 timer",
+  "breakOption1week": "1 uge",
+  "breakOption1month": "1 måned",
+  "breakUntil": "Pause indtil {date}",
+  "@breakUntil": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "endBreak": "Afslut pause",
+  "showTotals": "Vis totaler",
+
   "settingsImportCsv": "Importér CSV",
   "settingsImportCsvSubtitle": "Tilføj transaktioner fra en CSV-fil",
   "csvImportConfirm": "Transaktioner i filen føjes til dine nuværende data. Sider matches på navn og oprettes hvis de mangler.",

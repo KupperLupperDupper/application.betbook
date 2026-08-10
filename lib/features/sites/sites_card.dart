@@ -6,6 +6,7 @@ import '../../app/routes.dart';
 import '../../core/money/money_format.dart';
 import '../../core/stats/summaries.dart';
 import '../../l10n/l10n_ext.dart';
+import '../../providers/break_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/rates_providers.dart';
 import '../../providers/settings_providers.dart';
@@ -13,6 +14,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/net_text.dart';
 import '../../widgets/shuffle_refresh.dart';
 import '../../widgets/skeleton.dart';
+import '../dashboard/dashboard_card.dart' show HiddenNetSiteTile;
 import 'widgets/site_tile.dart';
 
 class SitesCard extends ConsumerWidget {
@@ -24,6 +26,10 @@ class SitesCard extends ConsumerWidget {
     final sitesAsync = ref.watch(sitesProvider);
     final portfolio = ref.watch(portfolioProvider);
     final locale = ref.watch(settingsProvider.select((s) => s.languageCode));
+    // Hide-totals during a break (§5): header net + per-site nets rest.
+    final breakActive = ref.watch(settingsProvider.select((s) => s.breakActive));
+    final showTotals = ref.watch(showTotalsProvider);
+    final hideTotals = breakActive && !showTotals;
 
     return sitesAsync.when(
       loading: () => const SkeletonSwitcher(
@@ -78,31 +84,60 @@ class SitesCard extends ConsumerWidget {
                                   ),
                             ),
                           ),
-                          NetText(
-                            value: portfolio.netBase,
-                            text: formatMajor(portfolio.netBase, base,
-                                localeName: locale, withSign: true),
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
+                          if (hideTotals)
+                            Text(
+                              '—',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                            )
+                          else
+                            NetText(
+                              value: portfolio.netBase,
+                              text: formatMajor(portfolio.netBase, base,
+                                  localeName: locale, withSign: true),
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
                         ],
                       ),
                     ),
                     for (final (i, site) in sites.indexed)
-                      SiteTile(
-                        site: site,
-                        summary: portfolio.siteSummaries[site.id] ??
-                            SiteSummary(
-                              siteId: site.id,
-                              currencyCode: site.currencyCode,
-                              depositedMinor: 0,
-                              withdrawnMinor: 0,
-                              transactionCount: 0,
-                            ),
-                        localeName: locale,
-                        countUpIndex: i,
-                        countUpListRow: true,
-                        onTap: () => context.push(Routes.siteDetail(site.id)),
-                      ),
+                      if (hideTotals)
+                        HiddenNetSiteTile(
+                          site: site,
+                          summary: portfolio.siteSummaries[site.id] ??
+                              SiteSummary(
+                                siteId: site.id,
+                                currencyCode: site.currencyCode,
+                                depositedMinor: 0,
+                                withdrawnMinor: 0,
+                                transactionCount: 0,
+                              ),
+                          onTap: () =>
+                              context.push(Routes.siteDetail(site.id)),
+                        )
+                      else
+                        SiteTile(
+                          site: site,
+                          summary: portfolio.siteSummaries[site.id] ??
+                              SiteSummary(
+                                siteId: site.id,
+                                currencyCode: site.currencyCode,
+                                depositedMinor: 0,
+                                withdrawnMinor: 0,
+                                transactionCount: 0,
+                              ),
+                          localeName: locale,
+                          countUpIndex: i,
+                          countUpListRow: true,
+                          onTap: () =>
+                              context.push(Routes.siteDetail(site.id)),
+                        ),
                   ]),
                 ),
               ),

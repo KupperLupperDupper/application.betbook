@@ -19,6 +19,14 @@ class AppSettings {
     this.netLossAlertMinor = 0,
     this.ratesAutoUpdate = false,
     this.ratesLastFetchedMillis = 0,
+    this.weeklySummaryEnabled = false,
+    this.limitWarningsEnabled = false,
+    this.notifRationaleShown = false,
+    this.summaryCardDismissedWeekIso = '',
+    this.rgApproachKey = '',
+    this.rgReachedKey = '',
+    this.rgNetLossKey = '',
+    this.breakUntilMillis = 0,
   });
 
   final ThemeMode themeMode;
@@ -41,7 +49,33 @@ class AppSettings {
   /// Epoch millis of the last successful rate fetch (0 = never).
   final int ratesLastFetchedMillis;
 
+  // ── Reminders (opt-in local notifications) ────────────────────────────────
+  final bool weeklySummaryEnabled;
+  final bool limitWarningsEnabled;
+
+  /// The notification-permission rationale sheet is shown once per install.
+  final bool notifRationaleShown;
+
+  /// ISO date of the week (its Monday) whose weekly card the user dismissed.
+  final String summaryCardDismissedWeekIso;
+
+  /// Period-start keys (`YYYY-MM-DD`) for which each limit warning already
+  /// fired, so it fires at most once per period. Empty = not yet fired.
+  final String rgApproachKey;
+  final String rgReachedKey;
+  final String rgNetLossKey;
+
+  /// Epoch millis until which a "take a break" is active (0 = no break).
+  final int breakUntilMillis;
+
   Locale get locale => Locale(languageCode);
+
+  DateTime? get breakUntil =>
+      breakUntilMillis == 0 ? null : DateTime.fromMillisecondsSinceEpoch(breakUntilMillis);
+
+  /// True while a break is active (totals hidden, reminders paused).
+  bool get breakActive =>
+      breakUntil != null && breakUntil!.isAfter(DateTime.now());
 
   DateTime? get ratesLastFetched => ratesLastFetchedMillis == 0
       ? null
@@ -61,6 +95,14 @@ class AppSettings {
     int? netLossAlertMinor,
     bool? ratesAutoUpdate,
     int? ratesLastFetchedMillis,
+    bool? weeklySummaryEnabled,
+    bool? limitWarningsEnabled,
+    bool? notifRationaleShown,
+    String? summaryCardDismissedWeekIso,
+    String? rgApproachKey,
+    String? rgReachedKey,
+    String? rgNetLossKey,
+    int? breakUntilMillis,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -77,6 +119,15 @@ class AppSettings {
       ratesAutoUpdate: ratesAutoUpdate ?? this.ratesAutoUpdate,
       ratesLastFetchedMillis:
           ratesLastFetchedMillis ?? this.ratesLastFetchedMillis,
+      weeklySummaryEnabled: weeklySummaryEnabled ?? this.weeklySummaryEnabled,
+      limitWarningsEnabled: limitWarningsEnabled ?? this.limitWarningsEnabled,
+      notifRationaleShown: notifRationaleShown ?? this.notifRationaleShown,
+      summaryCardDismissedWeekIso:
+          summaryCardDismissedWeekIso ?? this.summaryCardDismissedWeekIso,
+      rgApproachKey: rgApproachKey ?? this.rgApproachKey,
+      rgReachedKey: rgReachedKey ?? this.rgReachedKey,
+      rgNetLossKey: rgNetLossKey ?? this.rgNetLossKey,
+      breakUntilMillis: breakUntilMillis ?? this.breakUntilMillis,
     );
   }
 }

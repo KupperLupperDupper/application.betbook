@@ -4,9 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../features/lock/lock_screen.dart';
 import '../l10n/app_localizations.dart';
+import '../providers/data_providers.dart';
 import '../providers/lock_providers.dart';
+import '../providers/notifications_providers.dart';
 import '../providers/rates_providers.dart';
 import '../providers/settings_providers.dart';
+import '../services/notification_service.dart';
 import 'router.dart';
 
 class BetBookApp extends ConsumerStatefulWidget {
@@ -22,16 +25,31 @@ class _BetBookAppState extends ConsumerState<BetBookApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Opt-in weekly FX refresh; silently no-ops when disabled or offline.
+    NotificationService.instance.pendingRoute.addListener(_handlePendingRoute);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Opt-in weekly FX refresh; silently no-ops when disabled or offline.
       ref.read(ratesUpdaterProvider).maybeAutoRefresh();
+      // Reminders: re-arm the weekly nudge and evaluate limits at launch.
+      syncWeeklySchedule(ref);
+      maybeFireLimitWarnings(ref);
+      _handlePendingRoute();
     });
   }
 
   @override
   void dispose() {
+    NotificationService.instance.pendingRoute
+        .removeListener(_handlePendingRoute);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  /// Navigates to the route a tapped notification requested, then clears it.
+  void _handlePendingRoute() {
+    final route = NotificationService.instance.pendingRoute.value;
+    if (route == null || !mounted) return;
+    NotificationService.instance.pendingRoute.value = null;
+    ref.read(goRouterProvider).go(route);
   }
 
   @override
@@ -41,6 +59,10 @@ class _BetBookAppState extends ConsumerState<BetBookApp>
         state == AppLifecycleState.hidden) {
       ref.read(lockControllerProvider.notifier).lockIfEnabled();
     }
+    // Re-evaluate limit warnings whenever we come back.
+    if (state == AppLifecycleState.resumed) {
+      maybeFireLimitWarnings(ref);
+    }
   }
 
   @override
@@ -48,6 +70,9 @@ class _BetBookAppState extends ConsumerState<BetBookApp>
     final settings = ref.watch(settingsProvider);
     final router = ref.watch(goRouterProvider);
     final locked = ref.watch(lockControllerProvider);
+
+    // Fire limit warnings when a new transaction shifts the RG status.
+    ref.listen(rgStatusProvider, (_, _) => maybeFireLimitWarnings(ref));
 
     return MaterialApp.router(
       title: 'BetBook',

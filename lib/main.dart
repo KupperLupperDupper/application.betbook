@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
 import 'providers/core_providers.dart';
+import 'services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +14,10 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+
+  // Local notifications (opt-in reminders). Safe to init unconditionally; it
+  // schedules nothing until the user enables a reminder.
+  await NotificationService.instance.init();
 
   final prefs = await SharedPreferences.getInstance();
 

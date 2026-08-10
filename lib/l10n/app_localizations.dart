@@ -1370,6 +1370,282 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 entry} other{{count} entries}}'**
   String entriesCount(int count);
 
+  /// No description provided for @reminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get reminders;
+
+  /// No description provided for @weeklySummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly summary'**
+  String get weeklySummary;
+
+  /// No description provided for @weeklySummarySub.
+  ///
+  /// In en, this message translates to:
+  /// **'Every Monday at 09:00'**
+  String get weeklySummarySub;
+
+  /// No description provided for @limitWarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Limit warnings'**
+  String get limitWarnings;
+
+  /// No description provided for @limitWarningsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'At 80% and 100% of your deposit limit'**
+  String get limitWarningsSub;
+
+  /// No description provided for @setLimitFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a limit first'**
+  String get setLimitFirst;
+
+  /// No description provided for @notifRationaleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders on your phone'**
+  String get notifRationaleTitle;
+
+  /// No description provided for @notifRationaleBody.
+  ///
+  /// In en, this message translates to:
+  /// **'BetBook creates reminders on your phone. Nothing is sent to a server, and there is no account.'**
+  String get notifRationaleBody;
+
+  /// No description provided for @notNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get notNow;
+
+  /// No description provided for @continueLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueLabel;
+
+  /// No description provided for @notifDisabledSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders are turned off in system settings.'**
+  String get notifDisabledSystem;
+
+  /// No description provided for @openSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get openSettings;
+
+  /// No description provided for @weeklyChannelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly summary'**
+  String get weeklyChannelName;
+
+  /// No description provided for @weeklyChannelDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Your week in numbers, once a week'**
+  String get weeklyChannelDesc;
+
+  /// No description provided for @limitChannelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Limit warnings'**
+  String get limitChannelName;
+
+  /// No description provided for @limitChannelDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When you approach or reach a limit you set'**
+  String get limitChannelDesc;
+
+  /// No description provided for @lastWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Last week'**
+  String get lastWeek;
+
+  /// No description provided for @seeTheWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'See the week'**
+  String get seeTheWeek;
+
+  /// No description provided for @noEntriesLastWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'No entries last week.'**
+  String get noEntriesLastWeek;
+
+  /// No description provided for @weeklyNudgeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to see your week.'**
+  String get weeklyNudgeBody;
+
+  /// No description provided for @weeklyLossBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re down {amount} across {sites, plural, =1{1 site} other{{sites} sites}}.'**
+  String weeklyLossBody(String amount, int sites);
+
+  /// No description provided for @weeklyWinBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re up {amount} across {sites, plural, =1{1 site} other{{sites} sites}}.'**
+  String weeklyWinBody(String amount, int sites);
+
+  /// No description provided for @weeklyEvenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Deposits and withdrawals balanced out.'**
+  String get weeklyEvenBody;
+
+  /// No description provided for @limitPeriodDay.
+  ///
+  /// In en, this message translates to:
+  /// **'day'**
+  String get limitPeriodDay;
+
+  /// No description provided for @limitPeriodWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'week'**
+  String get limitPeriodWeek;
+
+  /// No description provided for @limitPeriodMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'month'**
+  String get limitPeriodMonth;
+
+  /// No description provided for @limitApproachTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used 80% of your deposit limit'**
+  String get limitApproachTitle;
+
+  /// No description provided for @limitApproachBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} of {limit} this {period}. Your limit is in Settings if you want to adjust it.'**
+  String limitApproachBody(String used, String limit, String period);
+
+  /// No description provided for @limitReachedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached your deposit limit'**
+  String get limitReachedTitle;
+
+  /// No description provided for @limitReachedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} of {limit} this {period}. Take a break or adjust your limit — both are in Settings.'**
+  String limitReachedBody(String used, String limit, String period);
+
+  /// No description provided for @netLossTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your net loss passed {amount}'**
+  String netLossTitle(String amount);
+
+  /// No description provided for @netLossBody.
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s the alert you set. Tap to review your limits.'**
+  String get netLossBody;
+
+  /// No description provided for @limitUsedPct.
+  ///
+  /// In en, this message translates to:
+  /// **'{pct}% of your limit used'**
+  String limitUsedPct(int pct);
+
+  /// No description provided for @limitReachedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached your limit'**
+  String get limitReachedLabel;
+
+  /// No description provided for @netLossLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your net loss alert'**
+  String get netLossLabel;
+
+  /// No description provided for @limitFigureLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} of {limit} this {period}'**
+  String limitFigureLine(String used, String limit, String period);
+
+  /// No description provided for @adjust.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust'**
+  String get adjust;
+
+  /// No description provided for @takeABreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a break'**
+  String get takeABreak;
+
+  /// No description provided for @takeABreakSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide totals and pause reminders'**
+  String get takeABreakSub;
+
+  /// No description provided for @takeABreakDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Totals are hidden and reminders pause. Logging still works, and you can end the break any time.'**
+  String get takeABreakDesc;
+
+  /// No description provided for @breakOption24h.
+  ///
+  /// In en, this message translates to:
+  /// **'24 hours'**
+  String get breakOption24h;
+
+  /// No description provided for @breakOption1week.
+  ///
+  /// In en, this message translates to:
+  /// **'1 week'**
+  String get breakOption1week;
+
+  /// No description provided for @breakOption1month.
+  ///
+  /// In en, this message translates to:
+  /// **'1 month'**
+  String get breakOption1month;
+
+  /// No description provided for @breakUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Break until {date}'**
+  String breakUntil(String date);
+
+  /// No description provided for @endBreak.
+  ///
+  /// In en, this message translates to:
+  /// **'End break'**
+  String get endBreak;
+
+  /// No description provided for @showTotals.
+  ///
+  /// In en, this message translates to:
+  /// **'Show totals'**
+  String get showTotals;
+
   /// No description provided for @settingsImportCsv.
   ///
   /// In en, this message translates to:

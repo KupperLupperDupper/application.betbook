@@ -14,6 +14,7 @@ import '../../core/theme/money_colors.dart';
 import '../../core/utils/date_format.dart';
 import '../../data/database/database.dart';
 import '../../l10n/l10n_ext.dart';
+import '../../providers/break_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
 import '../../providers/tags_providers.dart';
@@ -74,6 +75,10 @@ class _StatsCardState extends ConsumerState<StatsCard> {
     final sitesAsync = ref.watch(sitesProvider);
     final txsAsync = ref.watch(allTransactionsProvider);
     final rates = ref.watch(rateMapProvider);
+    // Hide-totals during a break (§5): the range net rests as an em dash.
+    final hideTotals =
+        ref.watch(settingsProvider.select((s) => s.breakActive)) &&
+            !ref.watch(showTotalsProvider);
 
     // While the deck-card list is about to appear, show the skeleton.
     if (sitesAsync.isLoading || txsAsync.isLoading) {
@@ -246,14 +251,23 @@ class _StatsCardState extends ConsumerState<StatsCard> {
               style: theme.textTheme.labelLarge
                   ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           const SizedBox(height: 4),
-          CountUpAmount(
-            value: rangeNet,
-            format: (v) =>
-                formatMajor(v, base, localeName: locale, withSign: true),
-            style: theme.textTheme.headlineMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
-            iconSize: 24,
-          ),
+          if (hideTotals)
+            Text(
+              '—',
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            )
+          else
+            CountUpAmount(
+              value: rangeNet,
+              format: (v) =>
+                  formatMajor(v, base, localeName: locale, withSign: true),
+              style: theme.textTheme.headlineMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
+              iconSize: 24,
+            ),
           const SizedBox(height: 24),
           if (series.length >= 2) ...[
             _SectionCard(

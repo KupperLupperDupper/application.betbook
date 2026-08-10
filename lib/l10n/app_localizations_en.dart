@@ -716,6 +716,176 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get reminders => 'Reminders';
+
+  @override
+  String get weeklySummary => 'Weekly summary';
+
+  @override
+  String get weeklySummarySub => 'Every Monday at 09:00';
+
+  @override
+  String get limitWarnings => 'Limit warnings';
+
+  @override
+  String get limitWarningsSub => 'At 80% and 100% of your deposit limit';
+
+  @override
+  String get setLimitFirst => 'Set a limit first';
+
+  @override
+  String get notifRationaleTitle => 'Reminders on your phone';
+
+  @override
+  String get notifRationaleBody =>
+      'BetBook creates reminders on your phone. Nothing is sent to a server, and there is no account.';
+
+  @override
+  String get notNow => 'Not now';
+
+  @override
+  String get continueLabel => 'Continue';
+
+  @override
+  String get notifDisabledSystem =>
+      'Reminders are turned off in system settings.';
+
+  @override
+  String get openSettings => 'Open settings';
+
+  @override
+  String get weeklyChannelName => 'Weekly summary';
+
+  @override
+  String get weeklyChannelDesc => 'Your week in numbers, once a week';
+
+  @override
+  String get limitChannelName => 'Limit warnings';
+
+  @override
+  String get limitChannelDesc => 'When you approach or reach a limit you set';
+
+  @override
+  String get lastWeek => 'Last week';
+
+  @override
+  String get seeTheWeek => 'See the week';
+
+  @override
+  String get noEntriesLastWeek => 'No entries last week.';
+
+  @override
+  String get weeklyNudgeBody => 'Tap to see your week.';
+
+  @override
+  String weeklyLossBody(String amount, int sites) {
+    String _temp0 = intl.Intl.pluralLogic(
+      sites,
+      locale: localeName,
+      other: '$sites sites',
+      one: '1 site',
+    );
+    return 'You\'re down $amount across $_temp0.';
+  }
+
+  @override
+  String weeklyWinBody(String amount, int sites) {
+    String _temp0 = intl.Intl.pluralLogic(
+      sites,
+      locale: localeName,
+      other: '$sites sites',
+      one: '1 site',
+    );
+    return 'You\'re up $amount across $_temp0.';
+  }
+
+  @override
+  String get weeklyEvenBody => 'Deposits and withdrawals balanced out.';
+
+  @override
+  String get limitPeriodDay => 'day';
+
+  @override
+  String get limitPeriodWeek => 'week';
+
+  @override
+  String get limitPeriodMonth => 'month';
+
+  @override
+  String get limitApproachTitle => 'You\'ve used 80% of your deposit limit';
+
+  @override
+  String limitApproachBody(String used, String limit, String period) {
+    return '$used of $limit this $period. Your limit is in Settings if you want to adjust it.';
+  }
+
+  @override
+  String get limitReachedTitle => 'You\'ve reached your deposit limit';
+
+  @override
+  String limitReachedBody(String used, String limit, String period) {
+    return '$used of $limit this $period. Take a break or adjust your limit — both are in Settings.';
+  }
+
+  @override
+  String netLossTitle(String amount) {
+    return 'Your net loss passed $amount';
+  }
+
+  @override
+  String get netLossBody =>
+      'That\'s the alert you set. Tap to review your limits.';
+
+  @override
+  String limitUsedPct(int pct) {
+    return '$pct% of your limit used';
+  }
+
+  @override
+  String get limitReachedLabel => 'You\'ve reached your limit';
+
+  @override
+  String get netLossLabel => 'Your net loss alert';
+
+  @override
+  String limitFigureLine(String used, String limit, String period) {
+    return '$used of $limit this $period';
+  }
+
+  @override
+  String get adjust => 'Adjust';
+
+  @override
+  String get takeABreak => 'Take a break';
+
+  @override
+  String get takeABreakSub => 'Hide totals and pause reminders';
+
+  @override
+  String get takeABreakDesc =>
+      'Totals are hidden and reminders pause. Logging still works, and you can end the break any time.';
+
+  @override
+  String get breakOption24h => '24 hours';
+
+  @override
+  String get breakOption1week => '1 week';
+
+  @override
+  String get breakOption1month => '1 month';
+
+  @override
+  String breakUntil(String date) {
+    return 'Break until $date';
+  }
+
+  @override
+  String get endBreak => 'End break';
+
+  @override
+  String get showTotals => 'Show totals';
+
+  @override
   String get settingsImportCsv => 'Import CSV';
 
   @override

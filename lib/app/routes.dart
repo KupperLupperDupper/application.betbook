@@ -17,5 +17,6 @@ class Routes {
 
   static const exchangeRates = '/settings/exchange-rates';
   static const responsibleGambling = '/settings/responsible-gambling';
+  static const takeABreak = '/settings/take-a-break';
   static const tags = '/settings/tags';
 }

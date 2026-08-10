@@ -716,6 +716,177 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get reminders => 'Påmindelser';
+
+  @override
+  String get weeklySummary => 'Ugentligt overblik';
+
+  @override
+  String get weeklySummarySub => 'Hver mandag kl. 09.00';
+
+  @override
+  String get limitWarnings => 'Advarsler om grænser';
+
+  @override
+  String get limitWarningsSub => 'Ved 80% og 100% af din indbetalingsgrænse';
+
+  @override
+  String get setLimitFirst => 'Sæt en grænse først';
+
+  @override
+  String get notifRationaleTitle => 'Påmindelser på din telefon';
+
+  @override
+  String get notifRationaleBody =>
+      'BetBook laver påmindelserne på din telefon. Intet sendes til en server, og der er ingen konto.';
+
+  @override
+  String get notNow => 'Ikke nu';
+
+  @override
+  String get continueLabel => 'Fortsæt';
+
+  @override
+  String get notifDisabledSystem =>
+      'Påmindelser er slået fra i systemindstillinger.';
+
+  @override
+  String get openSettings => 'Åbn indstillinger';
+
+  @override
+  String get weeklyChannelName => 'Ugentligt overblik';
+
+  @override
+  String get weeklyChannelDesc => 'Din uge i tal, én gang om ugen';
+
+  @override
+  String get limitChannelName => 'Advarsler om grænser';
+
+  @override
+  String get limitChannelDesc =>
+      'Når du nærmer dig eller når en grænse, du har sat';
+
+  @override
+  String get lastWeek => 'Sidste uge';
+
+  @override
+  String get seeTheWeek => 'Se ugen';
+
+  @override
+  String get noEntriesLastWeek => 'Ingen posteringer sidste uge.';
+
+  @override
+  String get weeklyNudgeBody => 'Tryk for at se din uge.';
+
+  @override
+  String weeklyLossBody(String amount, int sites) {
+    String _temp0 = intl.Intl.pluralLogic(
+      sites,
+      locale: localeName,
+      other: '$sites sites',
+      one: '1 site',
+    );
+    return 'Du er nede $amount på $_temp0.';
+  }
+
+  @override
+  String weeklyWinBody(String amount, int sites) {
+    String _temp0 = intl.Intl.pluralLogic(
+      sites,
+      locale: localeName,
+      other: '$sites sites',
+      one: '1 site',
+    );
+    return 'Du er oppe $amount på $_temp0.';
+  }
+
+  @override
+  String get weeklyEvenBody => 'Ind- og udbetalinger gik lige op.';
+
+  @override
+  String get limitPeriodDay => 'dag';
+
+  @override
+  String get limitPeriodWeek => 'uge';
+
+  @override
+  String get limitPeriodMonth => 'måned';
+
+  @override
+  String get limitApproachTitle => 'Du har brugt 80% af din indbetalingsgrænse';
+
+  @override
+  String limitApproachBody(String used, String limit, String period) {
+    return '$used af $limit denne $period. Din grænse ligger i Indstillinger, hvis du vil ændre den.';
+  }
+
+  @override
+  String get limitReachedTitle => 'Du har nået din indbetalingsgrænse';
+
+  @override
+  String limitReachedBody(String used, String limit, String period) {
+    return '$used af $limit denne $period. Tag en pause eller ændr din grænse — begge findes i Indstillinger.';
+  }
+
+  @override
+  String netLossTitle(String amount) {
+    return 'Dit nettotab er over $amount';
+  }
+
+  @override
+  String get netLossBody =>
+      'Det er den grænse, du har sat. Tryk for at se dine grænser.';
+
+  @override
+  String limitUsedPct(int pct) {
+    return '$pct% af din grænse brugt';
+  }
+
+  @override
+  String get limitReachedLabel => 'Din grænse er nået';
+
+  @override
+  String get netLossLabel => 'Din nettotabsgrænse';
+
+  @override
+  String limitFigureLine(String used, String limit, String period) {
+    return '$used af $limit denne $period';
+  }
+
+  @override
+  String get adjust => 'Justér';
+
+  @override
+  String get takeABreak => 'Tag en pause';
+
+  @override
+  String get takeABreakSub => 'Skjul totaler og pause påmindelser';
+
+  @override
+  String get takeABreakDesc =>
+      'Totaler skjules, og påmindelser sættes på pause. Du kan stadig registrere, og du kan afslutte pausen når som helst.';
+
+  @override
+  String get breakOption24h => '24 timer';
+
+  @override
+  String get breakOption1week => '1 uge';
+
+  @override
+  String get breakOption1month => '1 måned';
+
+  @override
+  String breakUntil(String date) {
+    return 'Pause indtil $date';
+  }
+
+  @override
+  String get endBreak => 'Afslut pause';
+
+  @override
+  String get showTotals => 'Vis totaler';
+
+  @override
   String get settingsImportCsv => 'Importér CSV';
 
   @override

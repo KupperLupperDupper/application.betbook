@@ -11,6 +11,7 @@ import '../../core/utils/date_format.dart';
 import '../../data/database/database.dart';
 import '../../data/models/enums.dart';
 import '../../l10n/l10n_ext.dart';
+import '../../providers/break_providers.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
@@ -77,6 +78,10 @@ class SiteDetailScreen extends ConsumerWidget {
     final siteAsync = ref.watch(siteByIdProvider(siteId));
     final txAsync = ref.watch(siteTransactionsProvider(siteId));
     final locale = ref.watch(settingsProvider.select((s) => s.languageCode));
+    // Hide-totals during a break (§5): the hero net rests as an em dash.
+    final hideTotals =
+        ref.watch(settingsProvider.select((s) => s.breakActive)) &&
+            !ref.watch(showTotalsProvider);
 
     return siteAsync.when(
       loading: () => const Scaffold(
@@ -149,6 +154,7 @@ class SiteDetailScreen extends ConsumerWidget {
                       depositedMinor: depositedMinor,
                       withdrawnMinor: withdrawnMinor,
                       locale: locale,
+                      hideTotals: hideTotals,
                     ),
                     const SizedBox(height: 16),
                     ..._buildTransactionSlivers(
@@ -229,6 +235,7 @@ class _HeroCard extends StatelessWidget {
     required this.depositedMinor,
     required this.withdrawnMinor,
     required this.locale,
+    this.hideTotals = false,
   });
 
   final Site site;
@@ -236,6 +243,9 @@ class _HeroCard extends StatelessWidget {
   final int depositedMinor;
   final int withdrawnMinor;
   final String locale;
+
+  /// While a break hides totals (§5) the hero net rests as an em dash.
+  final bool hideTotals;
 
   /// A secondary count-up figure for a hero stat: counts the digits but stays
   /// `onSurface` (deposited/withdrawn are cash movements, not outcomes).
@@ -298,32 +308,43 @@ class _HeroCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Icon(
-                context.money.iconForAmount(netMinor),
-                color: netColor,
-                size: 26,
+          if (hideTotals)
+            Text(
+              '—',
+              style: TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.w800,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(width: 8),
-              // Hero net (i = 0): counts up (may cross zero); the icon above is
-              // held final. Colour comes from money.forAmount, not pinned.
-              Expanded(
-                child: CountUpAmount(
-                  value: minorToMajor(netMinor),
-                  format: (v) => formatMinor(majorToMinor(v), site.currencyCode,
-                      localeName: locale, withSign: true),
-                  style: const TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.w800,
-                  ),
-                  showIcon: false,
-                  delay: motion.countUpDelay(0),
-                  duration: motion.countUpFor(0),
+            )
+          else
+            Row(
+              children: [
+                Icon(
+                  context.money.iconForAmount(netMinor),
+                  color: netColor,
+                  size: 26,
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 8),
+                // Hero net (i = 0): counts up (may cross zero); the icon above
+                // is held final. Colour comes from money.forAmount, not pinned.
+                Expanded(
+                  child: CountUpAmount(
+                    value: minorToMajor(netMinor),
+                    format: (v) => formatMinor(
+                        majorToMinor(v), site.currencyCode,
+                        localeName: locale, withSign: true),
+                    style: const TextStyle(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    showIcon: false,
+                    delay: motion.countUpDelay(0),
+                    duration: motion.countUpFor(0),
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 16),
           Row(
             children: [

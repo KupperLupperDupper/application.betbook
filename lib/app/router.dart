@@ -7,6 +7,7 @@ import '../features/home/home_shell.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/settings/exchange_rates_screen.dart';
 import '../features/settings/responsible_gambling_screen.dart';
+import '../features/settings/take_a_break_screen.dart';
 import '../features/sites/edit_site_screen.dart';
 import '../features/sites/site_detail_screen.dart';
 import '../features/tags/tag_management_screen.dart';
@@ -75,6 +76,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.responsibleGambling,
         builder: (_, _) => const ResponsibleGamblingScreen(),
+      ),
+      GoRoute(
+        path: Routes.takeABreak,
+        builder: (_, _) => const TakeABreakScreen(),
       ),
       GoRoute(
         path: Routes.tags,

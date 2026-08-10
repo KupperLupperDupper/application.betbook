@@ -278,6 +278,77 @@
     "placeholders": { "count": { "type": "int" } }
   },
 
+  "reminders": "Reminders",
+  "weeklySummary": "Weekly summary",
+  "weeklySummarySub": "Every Monday at 09:00",
+  "limitWarnings": "Limit warnings",
+  "limitWarningsSub": "At 80% and 100% of your deposit limit",
+  "setLimitFirst": "Set a limit first",
+  "notifRationaleTitle": "Reminders on your phone",
+  "notifRationaleBody": "BetBook creates reminders on your phone. Nothing is sent to a server, and there is no account.",
+  "notNow": "Not now",
+  "continueLabel": "Continue",
+  "notifDisabledSystem": "Reminders are turned off in system settings.",
+  "openSettings": "Open settings",
+  "weeklyChannelName": "Weekly summary",
+  "weeklyChannelDesc": "Your week in numbers, once a week",
+  "limitChannelName": "Limit warnings",
+  "limitChannelDesc": "When you approach or reach a limit you set",
+  "lastWeek": "Last week",
+  "seeTheWeek": "See the week",
+  "noEntriesLastWeek": "No entries last week.",
+  "weeklyNudgeBody": "Tap to see your week.",
+  "weeklyLossBody": "You're down {amount} across {sites, plural, =1{1 site} other{{sites} sites}}.",
+  "@weeklyLossBody": {
+    "placeholders": { "amount": { "type": "String" }, "sites": { "type": "int" } }
+  },
+  "weeklyWinBody": "You're up {amount} across {sites, plural, =1{1 site} other{{sites} sites}}.",
+  "@weeklyWinBody": {
+    "placeholders": { "amount": { "type": "String" }, "sites": { "type": "int" } }
+  },
+  "weeklyEvenBody": "Deposits and withdrawals balanced out.",
+  "limitPeriodDay": "day",
+  "limitPeriodWeek": "week",
+  "limitPeriodMonth": "month",
+  "limitApproachTitle": "You've used 80% of your deposit limit",
+  "limitApproachBody": "{used} of {limit} this {period}. Your limit is in Settings if you want to adjust it.",
+  "@limitApproachBody": {
+    "placeholders": { "used": { "type": "String" }, "limit": { "type": "String" }, "period": { "type": "String" } }
+  },
+  "limitReachedTitle": "You've reached your deposit limit",
+  "limitReachedBody": "{used} of {limit} this {period}. Take a break or adjust your limit — both are in Settings.",
+  "@limitReachedBody": {
+    "placeholders": { "used": { "type": "String" }, "limit": { "type": "String" }, "period": { "type": "String" } }
+  },
+  "netLossTitle": "Your net loss passed {amount}",
+  "@netLossTitle": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "netLossBody": "That's the alert you set. Tap to review your limits.",
+  "limitUsedPct": "{pct}% of your limit used",
+  "@limitUsedPct": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "limitReachedLabel": "You've reached your limit",
+  "netLossLabel": "Your net loss alert",
+  "limitFigureLine": "{used} of {limit} this {period}",
+  "@limitFigureLine": {
+    "placeholders": { "used": { "type": "String" }, "limit": { "type": "String" }, "period": { "type": "String" } }
+  },
+  "adjust": "Adjust",
+  "takeABreak": "Take a break",
+  "takeABreakSub": "Hide totals and pause reminders",
+  "takeABreakDesc": "Totals are hidden and reminders pause. Logging still works, and you can end the break any time.",
+  "breakOption24h": "24 hours",
+  "breakOption1week": "1 week",
+  "breakOption1month": "1 month",
+  "breakUntil": "Break until {date}",
+  "@breakUntil": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "endBreak": "End break",
+  "showTotals": "Show totals",
+
   "settingsImportCsv": "Import CSV",
   "settingsImportCsvSubtitle": "Add transactions from a CSV file",
   "csvImportConfirm": "Transactions in the file will be added to your current data. Sites are matched by name and created when missing.",

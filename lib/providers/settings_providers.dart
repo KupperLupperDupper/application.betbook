@@ -63,6 +63,39 @@ class SettingsController extends Notifier<AppSettings> {
 
   Future<void> markRatesFetched(DateTime when) =>
       _update(state.copyWith(ratesLastFetchedMillis: when.millisecondsSinceEpoch));
+
+  // ── Reminders ─────────────────────────────────────────────────────────────
+  Future<void> setWeeklySummaryEnabled(bool enabled) =>
+      _update(state.copyWith(weeklySummaryEnabled: enabled));
+
+  Future<void> setLimitWarningsEnabled(bool enabled) =>
+      _update(state.copyWith(limitWarningsEnabled: enabled));
+
+  Future<void> markNotifRationaleShown() =>
+      _update(state.copyWith(notifRationaleShown: true));
+
+  Future<void> dismissSummaryCard(String weekIso) =>
+      _update(state.copyWith(summaryCardDismissedWeekIso: weekIso));
+
+  Future<void> setRgNotifiedKeys({
+    String? approach,
+    String? reached,
+    String? netLoss,
+  }) =>
+      _update(state.copyWith(
+        rgApproachKey: approach,
+        rgReachedKey: reached,
+        rgNetLossKey: netLoss,
+      ));
+
+  /// Starts a break lasting [duration] from now (totals hidden, reminders
+  /// paused). Pass [Duration.zero] via [endBreak] to end early.
+  Future<void> startBreak(Duration duration) => _update(state.copyWith(
+        breakUntilMillis:
+            DateTime.now().add(duration).millisecondsSinceEpoch,
+      ));
+
+  Future<void> endBreak() => _update(state.copyWith(breakUntilMillis: 0));
 }
 
 final settingsProvider =
