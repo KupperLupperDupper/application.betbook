@@ -26,10 +26,8 @@ class SettingsRepository {
   static const _kNetLossMinor = 'settings.netLossAlertMinor';
   static const _kRatesAutoUpdate = 'settings.ratesAutoUpdate';
   static const _kRatesLastFetched = 'settings.ratesLastFetchedMillis';
-  static const _kWeeklySummary = 'settings.weeklySummaryEnabled';
   static const _kLimitWarnings = 'settings.limitWarningsEnabled';
   static const _kNotifRationale = 'settings.notifRationaleShown';
-  static const _kSummaryDismissed = 'settings.summaryCardDismissedWeekIso';
   static const _kRgApproach = 'settings.rgApproachKey';
   static const _kRgReached = 'settings.rgReachedKey';
   static const _kRgNetLoss = 'settings.rgNetLossKey';
@@ -51,10 +49,8 @@ class SettingsRepository {
       netLossAlertMinor: _prefs.getInt(_kNetLossMinor) ?? 0,
       ratesAutoUpdate: _prefs.getBool(_kRatesAutoUpdate) ?? false,
       ratesLastFetchedMillis: _prefs.getInt(_kRatesLastFetched) ?? 0,
-      weeklySummaryEnabled: _prefs.getBool(_kWeeklySummary) ?? false,
       limitWarningsEnabled: _prefs.getBool(_kLimitWarnings) ?? false,
       notifRationaleShown: _prefs.getBool(_kNotifRationale) ?? false,
-      summaryCardDismissedWeekIso: _prefs.getString(_kSummaryDismissed) ?? '',
       rgApproachKey: _prefs.getString(_kRgApproach) ?? '',
       rgReachedKey: _prefs.getString(_kRgReached) ?? '',
       rgNetLossKey: _prefs.getString(_kRgNetLoss) ?? '',
@@ -76,10 +72,8 @@ class SettingsRepository {
     await _prefs.setInt(_kNetLossMinor, s.netLossAlertMinor);
     await _prefs.setBool(_kRatesAutoUpdate, s.ratesAutoUpdate);
     await _prefs.setInt(_kRatesLastFetched, s.ratesLastFetchedMillis);
-    await _prefs.setBool(_kWeeklySummary, s.weeklySummaryEnabled);
     await _prefs.setBool(_kLimitWarnings, s.limitWarningsEnabled);
     await _prefs.setBool(_kNotifRationale, s.notifRationaleShown);
-    await _prefs.setString(_kSummaryDismissed, s.summaryCardDismissedWeekIso);
     await _prefs.setString(_kRgApproach, s.rgApproachKey);
     await _prefs.setString(_kRgReached, s.rgReachedKey);
     await _prefs.setString(_kRgNetLoss, s.rgNetLossKey);

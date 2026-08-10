@@ -1184,18 +1184,6 @@ abstract class AppLocalizations {
   /// **'Reminders'**
   String get reminders;
 
-  /// No description provided for @weeklySummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly summary'**
-  String get weeklySummary;
-
-  /// No description provided for @weeklySummarySub.
-  ///
-  /// In en, this message translates to:
-  /// **'Every Monday at 09:00'**
-  String get weeklySummarySub;
-
   /// No description provided for @limitWarnings.
   ///
   /// In en, this message translates to:
@@ -1250,18 +1238,6 @@ abstract class AppLocalizations {
   /// **'Open settings'**
   String get openSettings;
 
-  /// No description provided for @weeklyChannelName.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly summary'**
-  String get weeklyChannelName;
-
-  /// No description provided for @weeklyChannelDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Your week in numbers, once a week'**
-  String get weeklyChannelDesc;
-
   /// No description provided for @limitChannelName.
   ///
   /// In en, this message translates to:
@@ -1273,48 +1249,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When you approach or reach a limit you set'**
   String get limitChannelDesc;
-
-  /// No description provided for @lastWeek.
-  ///
-  /// In en, this message translates to:
-  /// **'Last week'**
-  String get lastWeek;
-
-  /// No description provided for @seeTheWeek.
-  ///
-  /// In en, this message translates to:
-  /// **'See the week'**
-  String get seeTheWeek;
-
-  /// No description provided for @noEntriesLastWeek.
-  ///
-  /// In en, this message translates to:
-  /// **'No entries last week.'**
-  String get noEntriesLastWeek;
-
-  /// No description provided for @weeklyNudgeBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap to see your week.'**
-  String get weeklyNudgeBody;
-
-  /// No description provided for @weeklyLossBody.
-  ///
-  /// In en, this message translates to:
-  /// **'You\'re down {amount} across {sites, plural, =1{1 site} other{{sites} sites}}.'**
-  String weeklyLossBody(String amount, int sites);
-
-  /// No description provided for @weeklyWinBody.
-  ///
-  /// In en, this message translates to:
-  /// **'You\'re up {amount} across {sites, plural, =1{1 site} other{{sites} sites}}.'**
-  String weeklyWinBody(String amount, int sites);
-
-  /// No description provided for @weeklyEvenBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Deposits and withdrawals balanced out.'**
-  String get weeklyEvenBody;
 
   /// No description provided for @limitPeriodDay.
   ///

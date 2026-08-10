@@ -11,11 +11,9 @@ import '../../core/theme/money_colors.dart';
 import '../../core/utils/date_format.dart';
 import '../../data/database/database.dart';
 import '../../data/models/enums.dart';
-import '../../l10n/app_localizations.dart';
 import '../../l10n/l10n_ext.dart';
 import '../../providers/break_providers.dart';
 import '../../providers/data_providers.dart';
-import '../../providers/notifications_providers.dart';
 import '../../providers/rates_providers.dart';
 import '../../providers/settings_providers.dart';
 import '../../widgets/count_up_amount.dart';
@@ -203,10 +201,8 @@ class _DashboardBody extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
         ],
-        // Limit state banner (§4.2) — a persistent state, above the summary card.
+        // Limit state banner (§4.2) — a persistent state above the hero.
         _LimitBanner(localeName: localeName),
-        // Weekly summary card (§4.1) — a dismissible message, above the hero.
-        _WeeklySummaryCard(localeName: localeName, hideTotals: hideTotals),
         Text(
           '${l10n.dashboardAllTime} · $base',
           style: theme.textTheme.bodySmall
@@ -421,7 +417,6 @@ class _BreakStateLine extends ConsumerWidget {
         TextButton(
           onPressed: () async {
             await ref.read(settingsProvider.notifier).endBreak();
-            await syncWeeklySchedule(ref);
             // Drop the session reveal so the next break starts hidden again.
             ref.read(showTotalsProvider.notifier).state = false;
           },
@@ -604,146 +599,6 @@ class _ProgressTrack extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Dismissible weekly summary card (§4.1). A *message*: it shows once a week
-/// until dismissed, then removes itself for that week.
-class _WeeklySummaryCard extends ConsumerWidget {
-  const _WeeklySummaryCard({
-    required this.localeName,
-    required this.hideTotals,
-  });
-
-  final String localeName;
-  final bool hideTotals;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-    final money = context.money;
-    final base = ref.watch(settingsProvider.select((s) => s.baseCurrency));
-    final dismissedIso = ref
-        .watch(settingsProvider.select((s) => s.summaryCardDismissedWeekIso));
-    final txs = ref.watch(allTransactionsProvider).valueOrNull ?? const [];
-    final weekIso = currentWeekIso(DateTime.now());
-
-    if (txs.isEmpty || weekIso == dismissedIso) return const SizedBox.shrink();
-
-    final summary = ref.watch(weeklySummaryProvider);
-    final dark = theme.brightness == Brightness.dark;
-
-    Widget figure;
-    if (!summary.hasActivity) {
-      figure = Text(l10n.noEntriesLastWeek, style: theme.textTheme.bodyLarge);
-    } else if (hideTotals) {
-      figure = Text(
-        '—',
-        style: theme.textTheme.headlineLarge?.copyWith(
-          fontWeight: FontWeight.w800,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-      );
-    } else {
-      final color = money.forAmount(summary.netBase);
-      figure = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(money.iconForAmount(summary.netBase), color: color, size: 22),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              formatMajor(summary.netBase, base,
-                  localeName: localeName, withSign: true),
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.headlineLarge?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w800,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: dark
-              ? theme.colorScheme.surfaceContainer
-              : theme.colorScheme.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.lastWeek,
-                    style: theme.textTheme.labelMedium
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                  ),
-                ),
-                SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    iconSize: 20,
-                    color: theme.colorScheme.onSurfaceVariant,
-                    icon: const Icon(Icons.close),
-                    onPressed: () => ref
-                        .read(settingsProvider.notifier)
-                        .dismissSummaryCard(weekIso),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            figure,
-            if (summary.hasActivity) ...[
-              const SizedBox(height: 6),
-              Text(
-                _weeklyBodySentence(l10n, summary, base, localeName),
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 4),
-              Align(
-                alignment: Alignment.centerLeft,
-                // Deep-linking the Stats deck card isn't available, so this is a
-                // no-op for now (§4.1 permits omitting the destination).
-                child: TextButton(
-                  onPressed: () {},
-                  child: Text(l10n.seeTheWeek),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The weekly card's body sentence (§4.1) — loss / win / break-even.
-String _weeklyBodySentence(
-  AppLocalizations l10n,
-  WeeklySummary summary,
-  String base,
-  String localeName,
-) {
-  final amount = formatMajor(summary.netBase.abs(), base, localeName: localeName);
-  if (summary.netBase < 0) return l10n.weeklyLossBody(amount, summary.siteCount);
-  if (summary.netBase > 0) return l10n.weeklyWinBody(amount, summary.siteCount);
-  return l10n.weeklyEvenBody;
 }
 
 /// A site row whose net rests as an em dash while a break hides totals (§5).

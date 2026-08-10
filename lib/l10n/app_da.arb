@@ -231,8 +231,6 @@
   "repeatThisEntry": "Gentag denne postering",
 
   "reminders": "Påmindelser",
-  "weeklySummary": "Ugentligt overblik",
-  "weeklySummarySub": "Hver mandag kl. 09.00",
   "limitWarnings": "Advarsler om grænser",
   "limitWarningsSub": "Ved 80% og 100% af din indbetalingsgrænse",
   "setLimitFirst": "Sæt en grænse først",
@@ -242,23 +240,8 @@
   "continueLabel": "Fortsæt",
   "notifDisabledSystem": "Påmindelser er slået fra i systemindstillinger.",
   "openSettings": "Åbn indstillinger",
-  "weeklyChannelName": "Ugentligt overblik",
-  "weeklyChannelDesc": "Din uge i tal, én gang om ugen",
   "limitChannelName": "Advarsler om grænser",
   "limitChannelDesc": "Når du nærmer dig eller når en grænse, du har sat",
-  "lastWeek": "Sidste uge",
-  "seeTheWeek": "Se ugen",
-  "noEntriesLastWeek": "Ingen posteringer sidste uge.",
-  "weeklyNudgeBody": "Tryk for at se din uge.",
-  "weeklyLossBody": "Du er nede {amount} på {sites, plural, =1{1 site} other{{sites} sites}}.",
-  "@weeklyLossBody": {
-    "placeholders": { "amount": { "type": "String" }, "sites": { "type": "int" } }
-  },
-  "weeklyWinBody": "Du er oppe {amount} på {sites, plural, =1{1 site} other{{sites} sites}}.",
-  "@weeklyWinBody": {
-    "placeholders": { "amount": { "type": "String" }, "sites": { "type": "int" } }
-  },
-  "weeklyEvenBody": "Ind- og udbetalinger gik lige op.",
   "limitPeriodDay": "dag",
   "limitPeriodWeek": "uge",
   "limitPeriodMonth": "måned",

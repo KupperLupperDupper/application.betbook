@@ -65,17 +65,11 @@ class SettingsController extends Notifier<AppSettings> {
       _update(state.copyWith(ratesLastFetchedMillis: when.millisecondsSinceEpoch));
 
   // ── Reminders ─────────────────────────────────────────────────────────────
-  Future<void> setWeeklySummaryEnabled(bool enabled) =>
-      _update(state.copyWith(weeklySummaryEnabled: enabled));
-
   Future<void> setLimitWarningsEnabled(bool enabled) =>
       _update(state.copyWith(limitWarningsEnabled: enabled));
 
   Future<void> markNotifRationaleShown() =>
       _update(state.copyWith(notifRationaleShown: true));
-
-  Future<void> dismissSummaryCard(String weekIso) =>
-      _update(state.copyWith(summaryCardDismissedWeekIso: weekIso));
 
   Future<void> setRgNotifiedKeys({
     String? approach,

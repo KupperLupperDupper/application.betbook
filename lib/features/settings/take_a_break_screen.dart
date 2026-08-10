@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/date_format.dart';
 import '../../l10n/l10n_ext.dart';
-import '../../providers/notifications_providers.dart';
 import '../../providers/settings_providers.dart';
 
 /// Scope-honest pause: hides totals and pauses reminders for a set duration.
@@ -16,13 +15,11 @@ class TakeABreakScreen extends ConsumerWidget {
   Future<void> _start(BuildContext context, WidgetRef ref, Duration d) async {
     final navigator = Navigator.of(context);
     await ref.read(settingsProvider.notifier).startBreak(d);
-    await syncWeeklySchedule(ref);
     if (context.mounted) navigator.pop();
   }
 
   Future<void> _end(WidgetRef ref) async {
     await ref.read(settingsProvider.notifier).endBreak();
-    await syncWeeklySchedule(ref);
   }
 
   @override

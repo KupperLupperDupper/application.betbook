@@ -606,12 +606,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get reminders => 'Påmindelser';
 
   @override
-  String get weeklySummary => 'Ugentligt overblik';
-
-  @override
-  String get weeklySummarySub => 'Hver mandag kl. 09.00';
-
-  @override
   String get limitWarnings => 'Advarsler om grænser';
 
   @override
@@ -641,54 +635,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get openSettings => 'Åbn indstillinger';
 
   @override
-  String get weeklyChannelName => 'Ugentligt overblik';
-
-  @override
-  String get weeklyChannelDesc => 'Din uge i tal, én gang om ugen';
-
-  @override
   String get limitChannelName => 'Advarsler om grænser';
 
   @override
   String get limitChannelDesc =>
       'Når du nærmer dig eller når en grænse, du har sat';
-
-  @override
-  String get lastWeek => 'Sidste uge';
-
-  @override
-  String get seeTheWeek => 'Se ugen';
-
-  @override
-  String get noEntriesLastWeek => 'Ingen posteringer sidste uge.';
-
-  @override
-  String get weeklyNudgeBody => 'Tryk for at se din uge.';
-
-  @override
-  String weeklyLossBody(String amount, int sites) {
-    String _temp0 = intl.Intl.pluralLogic(
-      sites,
-      locale: localeName,
-      other: '$sites sites',
-      one: '1 site',
-    );
-    return 'Du er nede $amount på $_temp0.';
-  }
-
-  @override
-  String weeklyWinBody(String amount, int sites) {
-    String _temp0 = intl.Intl.pluralLogic(
-      sites,
-      locale: localeName,
-      other: '$sites sites',
-      one: '1 site',
-    );
-    return 'Du er oppe $amount på $_temp0.';
-  }
-
-  @override
-  String get weeklyEvenBody => 'Ind- og udbetalinger gik lige op.';
 
   @override
   String get limitPeriodDay => 'dag';

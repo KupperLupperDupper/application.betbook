@@ -29,8 +29,7 @@ class _BetBookAppState extends ConsumerState<BetBookApp>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Opt-in weekly FX refresh; silently no-ops when disabled or offline.
       ref.read(ratesUpdaterProvider).maybeAutoRefresh();
-      // Reminders: re-arm the weekly nudge and evaluate limits at launch.
-      syncWeeklySchedule(ref);
+      // Evaluate limit warnings at launch.
       maybeFireLimitWarnings(ref);
       _handlePendingRoute();
     });

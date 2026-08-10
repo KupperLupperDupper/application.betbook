@@ -19,10 +19,8 @@ class AppSettings {
     this.netLossAlertMinor = 0,
     this.ratesAutoUpdate = false,
     this.ratesLastFetchedMillis = 0,
-    this.weeklySummaryEnabled = false,
     this.limitWarningsEnabled = false,
     this.notifRationaleShown = false,
-    this.summaryCardDismissedWeekIso = '',
     this.rgApproachKey = '',
     this.rgReachedKey = '',
     this.rgNetLossKey = '',
@@ -50,14 +48,10 @@ class AppSettings {
   final int ratesLastFetchedMillis;
 
   // ── Reminders (opt-in local notifications) ────────────────────────────────
-  final bool weeklySummaryEnabled;
   final bool limitWarningsEnabled;
 
   /// The notification-permission rationale sheet is shown once per install.
   final bool notifRationaleShown;
-
-  /// ISO date of the week (its Monday) whose weekly card the user dismissed.
-  final String summaryCardDismissedWeekIso;
 
   /// Period-start keys (`YYYY-MM-DD`) for which each limit warning already
   /// fired, so it fires at most once per period. Empty = not yet fired.
@@ -95,10 +89,8 @@ class AppSettings {
     int? netLossAlertMinor,
     bool? ratesAutoUpdate,
     int? ratesLastFetchedMillis,
-    bool? weeklySummaryEnabled,
     bool? limitWarningsEnabled,
     bool? notifRationaleShown,
-    String? summaryCardDismissedWeekIso,
     String? rgApproachKey,
     String? rgReachedKey,
     String? rgNetLossKey,
@@ -119,11 +111,8 @@ class AppSettings {
       ratesAutoUpdate: ratesAutoUpdate ?? this.ratesAutoUpdate,
       ratesLastFetchedMillis:
           ratesLastFetchedMillis ?? this.ratesLastFetchedMillis,
-      weeklySummaryEnabled: weeklySummaryEnabled ?? this.weeklySummaryEnabled,
       limitWarningsEnabled: limitWarningsEnabled ?? this.limitWarningsEnabled,
       notifRationaleShown: notifRationaleShown ?? this.notifRationaleShown,
-      summaryCardDismissedWeekIso:
-          summaryCardDismissedWeekIso ?? this.summaryCardDismissedWeekIso,
       rgApproachKey: rgApproachKey ?? this.rgApproachKey,
       rgReachedKey: rgReachedKey ?? this.rgReachedKey,
       rgNetLossKey: rgNetLossKey ?? this.rgNetLossKey,

@@ -606,12 +606,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reminders => 'Reminders';
 
   @override
-  String get weeklySummary => 'Weekly summary';
-
-  @override
-  String get weeklySummarySub => 'Every Monday at 09:00';
-
-  @override
   String get limitWarnings => 'Limit warnings';
 
   @override
@@ -641,53 +635,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openSettings => 'Open settings';
 
   @override
-  String get weeklyChannelName => 'Weekly summary';
-
-  @override
-  String get weeklyChannelDesc => 'Your week in numbers, once a week';
-
-  @override
   String get limitChannelName => 'Limit warnings';
 
   @override
   String get limitChannelDesc => 'When you approach or reach a limit you set';
-
-  @override
-  String get lastWeek => 'Last week';
-
-  @override
-  String get seeTheWeek => 'See the week';
-
-  @override
-  String get noEntriesLastWeek => 'No entries last week.';
-
-  @override
-  String get weeklyNudgeBody => 'Tap to see your week.';
-
-  @override
-  String weeklyLossBody(String amount, int sites) {
-    String _temp0 = intl.Intl.pluralLogic(
-      sites,
-      locale: localeName,
-      other: '$sites sites',
-      one: '1 site',
-    );
-    return 'You\'re down $amount across $_temp0.';
-  }
-
-  @override
-  String weeklyWinBody(String amount, int sites) {
-    String _temp0 = intl.Intl.pluralLogic(
-      sites,
-      locale: localeName,
-      other: '$sites sites',
-      one: '1 site',
-    );
-    return 'You\'re up $amount across $_temp0.';
-  }
-
-  @override
-  String get weeklyEvenBody => 'Deposits and withdrawals balanced out.';
 
   @override
   String get limitPeriodDay => 'day';

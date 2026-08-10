@@ -27,27 +27,15 @@ class _ResponsibleGamblingScreenState
   /// Shown under the reminders group after a denied/blocked permission attempt.
   bool _permissionBlocked = false;
 
-  /// Which switch the user last tried to turn on, so an "Open settings" retry
-  /// can complete it once permission is granted.
-  bool _pendingWeekly = false;
+  Future<void> _enable() =>
+      ref.read(settingsProvider.notifier).setLimitWarningsEnabled(true);
 
-  Future<void> _enable(bool weekly) async {
-    final notifier = ref.read(settingsProvider.notifier);
-    if (weekly) {
-      await notifier.setWeeklySummaryEnabled(true);
-      await syncWeeklySchedule(ref);
-    } else {
-      await notifier.setLimitWarningsEnabled(true);
-    }
-  }
-
-  /// Turning a switch ON. Routes through the rationale sheet + OS permission
-  /// instead of enabling directly. See NOTIFICATIONS_HANDOFF.md §2.2.
-  Future<void> _handleTurnOn(bool weekly) async {
+  /// Turning the limit-warnings switch ON. Routes through the rationale sheet +
+  /// OS permission instead of enabling directly (NOTIFICATIONS_HANDOFF §2.2).
+  Future<void> _handleTurnOn() async {
     final settings = ref.read(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
     final service = ref.read(notificationServiceProvider);
-    _pendingWeekly = weekly;
 
     if (!settings.notifRationaleShown) {
       // First time: explain before touching the OS dialog.
@@ -57,7 +45,7 @@ class _ResponsibleGamblingScreenState
       final granted = await service.requestPermission();
       if (!mounted) return;
       if (granted) {
-        await _enable(weekly);
+        await _enable();
         if (!mounted) return;
         setState(() => _permissionBlocked = false);
       } else {
@@ -70,7 +58,7 @@ class _ResponsibleGamblingScreenState
     final enabled = await service.areEnabled();
     if (!mounted) return;
     if (enabled) {
-      await _enable(weekly);
+      await _enable();
       if (!mounted) return;
       setState(() => _permissionBlocked = false);
       return;
@@ -79,7 +67,7 @@ class _ResponsibleGamblingScreenState
     final granted = await service.requestPermission();
     if (!mounted) return;
     if (granted) {
-      await _enable(weekly);
+      await _enable();
       if (!mounted) return;
       setState(() => _permissionBlocked = false);
     } else {
@@ -87,26 +75,20 @@ class _ResponsibleGamblingScreenState
     }
   }
 
-  Future<void> _handleTurnOff(bool weekly) async {
-    final notifier = ref.read(settingsProvider.notifier);
-    if (weekly) {
-      await notifier.setWeeklySummaryEnabled(false);
-      await syncWeeklySchedule(ref);
-    } else {
-      await notifier.setLimitWarningsEnabled(false);
-    }
+  Future<void> _handleTurnOff() async {
+    await ref.read(settingsProvider.notifier).setLimitWarningsEnabled(false);
     if (!mounted) return;
     setState(() => _permissionBlocked = false);
   }
 
   /// The "Open settings" retry: re-request permission and, if granted, finish
-  /// enabling the switch the user was trying to turn on. Never a dead toggle.
+  /// enabling. Never a dead toggle.
   Future<void> _retryFromBlocked() async {
     final service = ref.read(notificationServiceProvider);
     final granted = await service.requestPermission();
     if (!mounted) return;
     if (granted) {
-      await _enable(_pendingWeekly);
+      await _enable();
       if (!mounted) return;
       setState(() => _permissionBlocked = false);
     }
@@ -323,20 +305,13 @@ class _ResponsibleGamblingScreenState
             child: Column(
               children: [
                 SwitchListTile(
-                  title: Text(l10n.weeklySummary),
-                  subtitle: Text(l10n.weeklySummarySub),
-                  value: settings.weeklySummaryEnabled,
-                  onChanged: (v) =>
-                      v ? _handleTurnOn(true) : _handleTurnOff(true),
-                ),
-                SwitchListTile(
                   title: Text(l10n.limitWarnings),
                   subtitle: Text(
                     limitsConfigured ? l10n.limitWarningsSub : l10n.setLimitFirst,
                   ),
                   value: settings.limitWarningsEnabled,
                   onChanged: limitsConfigured
-                      ? (v) => v ? _handleTurnOn(false) : _handleTurnOff(false)
+                      ? (v) => v ? _handleTurnOn() : _handleTurnOff()
                       : null,
                 ),
                 if (_permissionBlocked)

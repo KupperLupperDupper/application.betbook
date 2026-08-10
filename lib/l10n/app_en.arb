@@ -231,8 +231,6 @@
   "repeatThisEntry": "Repeat this entry",
 
   "reminders": "Reminders",
-  "weeklySummary": "Weekly summary",
-  "weeklySummarySub": "Every Monday at 09:00",
   "limitWarnings": "Limit warnings",
   "limitWarningsSub": "At 80% and 100% of your deposit limit",
   "setLimitFirst": "Set a limit first",
@@ -242,23 +240,8 @@
   "continueLabel": "Continue",
   "notifDisabledSystem": "Reminders are turned off in system settings.",
   "openSettings": "Open settings",
-  "weeklyChannelName": "Weekly summary",
-  "weeklyChannelDesc": "Your week in numbers, once a week",
   "limitChannelName": "Limit warnings",
   "limitChannelDesc": "When you approach or reach a limit you set",
-  "lastWeek": "Last week",
-  "seeTheWeek": "See the week",
-  "noEntriesLastWeek": "No entries last week.",
-  "weeklyNudgeBody": "Tap to see your week.",
-  "weeklyLossBody": "You're down {amount} across {sites, plural, =1{1 site} other{{sites} sites}}.",
-  "@weeklyLossBody": {
-    "placeholders": { "amount": { "type": "String" }, "sites": { "type": "int" } }
-  },
-  "weeklyWinBody": "You're up {amount} across {sites, plural, =1{1 site} other{{sites} sites}}.",
-  "@weeklyWinBody": {
-    "placeholders": { "amount": { "type": "String" }, "sites": { "type": "int" } }
-  },
-  "weeklyEvenBody": "Deposits and withdrawals balanced out.",
   "limitPeriodDay": "day",
   "limitPeriodWeek": "week",
   "limitPeriodMonth": "month",
