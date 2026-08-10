@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 /// Shows a "deleted — Undo" SnackBar on [messenger].
@@ -12,26 +14,37 @@ void showUndoSnackBar(
   required String undoLabel,
   required VoidCallback onUndo,
 }) {
-  // Clear any queued/current snackbars so rapid actions never stack and leave
-  // one lingering. `clearSnackBars` removes the queue too (hideCurrentSnackBar
-  // only dismisses the visible one).
+  // Clear any queued/current bars so rapid actions never stack one that lingers.
   messenger.clearSnackBars();
-  messenger.showSnackBar(
+
+  var handled = false;
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? controller;
+
+  controller = messenger.showSnackBar(
     SnackBar(
       content: Text(message),
-      duration: const Duration(seconds: 4),
-      // Default (fixed) behavior: a floating SnackBar inside the home's Stack
-      // can fail to auto-dismiss; fixed anchors to the Scaffold and always does.
+      // We own dismissal via the timer below. The built-in duration timer is
+      // suppressed by the platform when accessible-navigation is on, which is
+      // why relying on it left the bar pinned on screen — so we use a long
+      // duration and dismiss ourselves.
+      duration: const Duration(minutes: 1),
       action: SnackBarAction(
         label: undoLabel,
-        // Guard the callback: if it threw, SnackBarAction would skip its own
-        // dismiss and the bar would stay on screen forever.
         onPressed: () {
+          if (handled) return;
+          handled = true;
           try {
             onUndo();
-          } catch (_) {/* restore is best-effort; still dismiss */}
+          } catch (_) {/* restore is best-effort; SnackBarAction still dismisses */}
         },
       ),
     ),
   );
+
+  // Guaranteed auto-dismiss after 4 s regardless of platform timer quirks.
+  Timer(const Duration(seconds: 4), () {
+    if (handled) return;
+    handled = true;
+    controller?.close();
+  });
 }
