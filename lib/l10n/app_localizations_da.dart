@@ -589,6 +589,41 @@ class AppLocalizationsDa extends AppLocalizations {
   String get backupInvalidFile => 'Filen er ikke en gyldig BetBook-backup';
 
   @override
+  String get quickAddTitle => 'Ny postering';
+
+  @override
+  String get recentAmounts => 'Seneste beløb';
+
+  @override
+  String get quickAddChooseSite => 'Vælg site';
+
+  @override
+  String get quickAddNewSite => 'Nyt site';
+
+  @override
+  String quickAddDatedNow(String time) {
+    return 'Dateres nu · i dag $time';
+  }
+
+  @override
+  String get quickAddMoreFields => 'Flere felter';
+
+  @override
+  String get quickAddEnterAmount => 'Indtast et beløb';
+
+  @override
+  String get quickAddSelectSite => 'Vælg site';
+
+  @override
+  String get quickAddSaved => 'Postering gemt';
+
+  @override
+  String get repeatEntry => 'Gentag postering';
+
+  @override
+  String get repeatThisEntry => 'Gentag denne postering';
+
+  @override
   String get settingsImportCsv => 'Importér CSV';
 
   @override

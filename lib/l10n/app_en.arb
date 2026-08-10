@@ -222,6 +222,21 @@
   "backupImportConfirm": "Importing replaces all current data with the backup's contents. Continue?",
   "backupInvalidFile": "That file isn't a valid BetBook backup",
 
+  "quickAddTitle": "New entry",
+  "recentAmounts": "Recent amounts",
+  "quickAddChooseSite": "Choose site",
+  "quickAddNewSite": "New site",
+  "quickAddDatedNow": "Dated now · today {time}",
+  "@quickAddDatedNow": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "quickAddMoreFields": "More fields",
+  "quickAddEnterAmount": "Enter an amount",
+  "quickAddSelectSite": "Choose a site",
+  "quickAddSaved": "Entry saved",
+  "repeatEntry": "Repeat entry",
+  "repeatThisEntry": "Repeat this entry",
+
   "settingsImportCsv": "Import CSV",
   "settingsImportCsvSubtitle": "Add transactions from a CSV file",
   "csvImportConfirm": "Transactions in the file will be added to your current data. Sites are matched by name and created when missing.",

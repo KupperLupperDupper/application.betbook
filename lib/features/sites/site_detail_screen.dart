@@ -19,6 +19,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/mini_card_avatar.dart';
 import '../../widgets/suit_loader.dart';
 import '../../widgets/undo_snackbar.dart';
+import '../transactions/repeat_last_sheet.dart';
 
 class SiteDetailScreen extends ConsumerWidget {
   const SiteDetailScreen({super.key, required this.siteId});
@@ -151,6 +152,7 @@ class SiteDetailScreen extends ConsumerWidget {
                     ..._buildTransactionSlivers(
                       context: context,
                       ref: ref,
+                      site: site,
                       txs: txs,
                       runningNet: runningNet,
                       locale: locale,
@@ -167,13 +169,14 @@ class SiteDetailScreen extends ConsumerWidget {
   List<Widget> _buildTransactionSlivers({
     required BuildContext context,
     required WidgetRef ref,
+    required Site site,
     required List<Transaction> txs,
     required Map<String, int> runningNet,
     required String locale,
   }) {
     final widgets = <Widget>[];
     String? currentKey;
-    for (final tx in txs) {
+    for (final (i, tx) in txs.indexed) {
       final key = '${tx.date.year}-${tx.date.month}';
       if (key != currentKey) {
         currentKey = key;
@@ -184,6 +187,10 @@ class SiteDetailScreen extends ConsumerWidget {
           tx: tx,
           locale: locale,
           runningNet: runningNet[tx.id] ?? 0,
+          // Only the most recent row carries the repeat affordance (§1.2).
+          onRepeat: i == 0
+              ? () => showRepeatLastSheet(context, source: tx, site: site)
+              : null,
           onTap: () => context.push(Routes.editTransaction(tx.id)),
           onDelete: () {
             final messenger = ScaffoldMessenger.of(context);
@@ -405,6 +412,7 @@ class _TransactionRow extends StatelessWidget {
     required this.runningNet,
     required this.onTap,
     required this.onDelete,
+    this.onRepeat,
   });
 
   final Transaction tx;
@@ -412,6 +420,9 @@ class _TransactionRow extends StatelessWidget {
   final int runningNet;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+
+  /// Set only on the most recent row — opens the repeat-last confirm sheet.
+  final VoidCallback? onRepeat;
 
   @override
   Widget build(BuildContext context) {
@@ -496,25 +507,42 @@ class _TransactionRow extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                signedAmount,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: theme.colorScheme.onSurface,
-                ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    signedAmount,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  Text(
+                    l10n.txRunningNet(
+                      formatMinorPlain(runningNet,
+                          localeName: locale, withSign: true),
+                    ),
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                ],
               ),
-              Text(
-                l10n.txRunningNet(
-                  formatMinorPlain(runningNet,
-                      localeName: locale, withSign: true),
+              if (onRepeat != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: IconButton(
+                    icon: const Icon(Icons.replay_rounded),
+                    iconSize: 20,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: l10n.repeatThisEntry,
+                    color: theme.colorScheme.onSurfaceVariant,
+                    onPressed: onRepeat,
+                  ),
                 ),
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
             ],
           ),
         ),

@@ -589,6 +589,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupInvalidFile => 'That file isn\'t a valid BetBook backup';
 
   @override
+  String get quickAddTitle => 'New entry';
+
+  @override
+  String get recentAmounts => 'Recent amounts';
+
+  @override
+  String get quickAddChooseSite => 'Choose site';
+
+  @override
+  String get quickAddNewSite => 'New site';
+
+  @override
+  String quickAddDatedNow(String time) {
+    return 'Dated now · today $time';
+  }
+
+  @override
+  String get quickAddMoreFields => 'More fields';
+
+  @override
+  String get quickAddEnterAmount => 'Enter an amount';
+
+  @override
+  String get quickAddSelectSite => 'Choose a site';
+
+  @override
+  String get quickAddSaved => 'Entry saved';
+
+  @override
+  String get repeatEntry => 'Repeat entry';
+
+  @override
+  String get repeatThisEntry => 'Repeat this entry';
+
+  @override
   String get settingsImportCsv => 'Import CSV';
 
   @override

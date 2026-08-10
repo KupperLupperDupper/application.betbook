@@ -222,6 +222,21 @@
   "backupImportConfirm": "Import erstatter alle nuværende data med backuppens indhold. Fortsæt?",
   "backupInvalidFile": "Filen er ikke en gyldig BetBook-backup",
 
+  "quickAddTitle": "Ny postering",
+  "recentAmounts": "Seneste beløb",
+  "quickAddChooseSite": "Vælg site",
+  "quickAddNewSite": "Nyt site",
+  "quickAddDatedNow": "Dateres nu · i dag {time}",
+  "@quickAddDatedNow": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "quickAddMoreFields": "Flere felter",
+  "quickAddEnterAmount": "Indtast et beløb",
+  "quickAddSelectSite": "Vælg site",
+  "quickAddSaved": "Postering gemt",
+  "repeatEntry": "Gentag postering",
+  "repeatThisEntry": "Gentag denne postering",
+
   "settingsImportCsv": "Importér CSV",
   "settingsImportCsvSubtitle": "Tilføj transaktioner fra en CSV-fil",
   "csvImportConfirm": "Transaktioner i filen føjes til dine nuværende data. Sider matches på navn og oprettes hvis de mangler.",

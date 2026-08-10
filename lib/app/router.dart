@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../data/models/enums.dart';
 import '../features/home/home_shell.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/settings/exchange_rates_screen.dart';
@@ -48,9 +49,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.newTransaction,
-        builder: (_, state) => EditTransactionScreen(
-          initialSiteId: state.uri.queryParameters['siteId'],
-        ),
+        builder: (_, state) {
+          final typeName = state.uri.queryParameters['type'];
+          return EditTransactionScreen(
+            initialSiteId: state.uri.queryParameters['siteId'],
+            initialType: typeName == null
+                ? null
+                : TransactionType.values
+                    .where((t) => t.name == typeName)
+                    .firstOrNull,
+            initialRawAmount: state.uri.queryParameters['amount'],
+          );
+        },
       ),
       GoRoute(
         path: Routes.editTransactionPath,

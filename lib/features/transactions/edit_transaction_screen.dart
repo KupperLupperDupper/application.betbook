@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/routes.dart';
+import '../../core/money/amount_input.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money_format.dart';
 import '../../data/database/database.dart';
@@ -14,6 +15,7 @@ import '../../l10n/l10n_ext.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
+import '../../widgets/amount_keypad.dart';
 import '../../widgets/undo_snackbar.dart';
 
 /// Full-screen route for creating or editing a transaction. The amount is
@@ -24,10 +26,16 @@ class EditTransactionScreen extends ConsumerStatefulWidget {
     super.key,
     this.transactionId,
     this.initialSiteId,
+    this.initialType,
+    this.initialRawAmount,
   });
 
   final String? transactionId;
   final String? initialSiteId;
+
+  /// Prefill for the "More fields" hand-off from quick-add.
+  final TransactionType? initialType;
+  final String? initialRawAmount;
 
   bool get isEditing => transactionId != null;
 
@@ -54,6 +62,10 @@ class _EditTransactionScreenState
   void initState() {
     super.initState();
     _siteId = widget.initialSiteId;
+    if (widget.initialType != null) _type = widget.initialType!;
+    if (widget.initialRawAmount != null && widget.initialRawAmount!.isNotEmpty) {
+      _raw = widget.initialRawAmount!;
+    }
   }
 
   @override
@@ -65,74 +77,18 @@ class _EditTransactionScreenState
   // ── Amount model ─────────────────────────────────────────────────────────
 
   /// The parsed value, or null when empty / not a number.
-  double? get _amountValue {
-    if (_raw.isEmpty) return null;
-    var s = _raw;
-    if (s.endsWith('.')) s = s.substring(0, s.length - 1);
-    if (s.isEmpty) return null;
-    return double.tryParse(s);
-  }
+  double? get _amountValue => AmountInput.value(_raw);
 
   bool get _canSave {
     final v = _amountValue;
     return v != null && v > 0 && _siteId != null && !_saving;
   }
 
-  /// Builds a canonical raw string (`.` separator, trailing zeros stripped)
-  /// from a major-unit value, for prefilling when editing.
-  String _rawFromMajor(double value) {
-    var s = value.toStringAsFixed(2);
-    if (s.contains('.')) {
-      s = s.replaceAll(RegExp(r'0+$'), '');
-      s = s.replaceAll(RegExp(r'\.$'), '');
-    }
-    return s;
-  }
-
-  String _decimalSeparator(String locale) =>
-      NumberFormat.decimalPattern(locale).symbols.DECIMAL_SEP;
-
-  /// Renders [_raw] with the locale's grouping and decimal separator, keeping
-  /// partially-typed values (e.g. `"12."`) natural.
-  String _displayAmount(String locale) {
-    if (_raw.isEmpty) return '0';
-    final decSep = _decimalSeparator(locale);
-    final parts = _raw.split('.');
-    final intText = parts[0].isEmpty ? '0' : parts[0];
-    final grouped =
-        NumberFormat.decimalPattern(locale).format(int.tryParse(intText) ?? 0);
-    if (parts.length == 1) return grouped;
-    return '$grouped$decSep${parts[1]}';
-  }
-
   void _onKeyTap(String key) {
     HapticFeedback.lightImpact();
-    final next = _nextRaw(key);
+    final next = AmountInput.nextRaw(_raw, key);
     if (next == _raw) return;
     setState(() => _raw = next);
-  }
-
-  /// Pure transition for a keypad tap. Enforces: at most one decimal
-  /// separator, at most two fractional digits, and no leading zero runs.
-  String _nextRaw(String key) {
-    if (key == 'back') {
-      return _raw.isEmpty ? _raw : _raw.substring(0, _raw.length - 1);
-    }
-    if (key == 'dot') {
-      if (_raw.contains('.')) return _raw;
-      return _raw.isEmpty ? '0.' : '$_raw.';
-    }
-    // A digit.
-    if (_raw.contains('.')) {
-      final fraction = _raw.split('.')[1];
-      if (fraction.length >= 2) return _raw;
-      return '$_raw$key';
-    }
-    if (_raw == '0') {
-      // Replace a lone leading zero; ignore additional zeros.
-      return key == '0' ? _raw : key;
-    }
-    return '$_raw$key';
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────
@@ -284,7 +240,7 @@ class _EditTransactionScreenState
         _type = tx.type;
         _siteId = tx.siteId;
         _date = tx.date;
-        _raw = _rawFromMajor(minorToMajor(tx.amountMinor));
+        _raw = AmountInput.rawFromMajor(minorToMajor(tx.amountMinor));
         _noteController.text = tx.note ?? '';
         _initialized = true;
       }
@@ -363,8 +319,8 @@ class _EditTransactionScreenState
                 ),
               ),
             ),
-            _Keypad(
-              decimalSeparator: _decimalSeparator(locale),
+            AmountKeypad(
+              decimalSeparator: AmountInput.decimalSeparator(locale),
               onTap: _onKeyTap,
             ),
             Padding(
@@ -449,7 +405,7 @@ class _EditTransactionScreenState
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  _displayAmount(locale),
+                  AmountInput.display(_raw, locale),
                   style: TextStyle(
                     fontSize: 52,
                     fontWeight: FontWeight.w800,
@@ -604,58 +560,3 @@ class _BorderedRow extends StatelessWidget {
   }
 }
 
-/// The custom numeric keypad. Emits `'0'..'9'`, `'dot'`, and `'back'`.
-class _Keypad extends StatelessWidget {
-  const _Keypad({required this.decimalSeparator, required this.onTap});
-
-  final String decimalSeparator;
-  final void Function(String key) onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    const rows = [
-      ['1', '2', '3'],
-      ['4', '5', '6'],
-      ['7', '8', '9'],
-      ['dot', '0', 'back'],
-    ];
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final row in rows)
-            Row(
-              children: [
-                for (final key in row)
-                  Expanded(child: _buildKey(context, key)),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildKey(BuildContext context, String key) {
-    final theme = Theme.of(context);
-    Widget label;
-    if (key == 'back') {
-      label = const Icon(Icons.backspace_outlined);
-    } else if (key == 'dot') {
-      label = Text(decimalSeparator, style: theme.textTheme.titleLarge);
-    } else {
-      label = Text(key, style: theme.textTheme.titleLarge);
-    }
-    return Padding(
-      padding: const EdgeInsets.all(4),
-      child: SizedBox(
-        height: 56,
-        child: InkWell(
-          onTap: () => onTap(key),
-          borderRadius: BorderRadius.circular(14),
-          child: Center(child: label),
-        ),
-      ),
-    );
-  }
-}

@@ -1154,6 +1154,72 @@ abstract class AppLocalizations {
   /// **'That file isn\'t a valid BetBook backup'**
   String get backupInvalidFile;
 
+  /// No description provided for @quickAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New entry'**
+  String get quickAddTitle;
+
+  /// No description provided for @recentAmounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent amounts'**
+  String get recentAmounts;
+
+  /// No description provided for @quickAddChooseSite.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose site'**
+  String get quickAddChooseSite;
+
+  /// No description provided for @quickAddNewSite.
+  ///
+  /// In en, this message translates to:
+  /// **'New site'**
+  String get quickAddNewSite;
+
+  /// No description provided for @quickAddDatedNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Dated now · today {time}'**
+  String quickAddDatedNow(String time);
+
+  /// No description provided for @quickAddMoreFields.
+  ///
+  /// In en, this message translates to:
+  /// **'More fields'**
+  String get quickAddMoreFields;
+
+  /// No description provided for @quickAddEnterAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount'**
+  String get quickAddEnterAmount;
+
+  /// No description provided for @quickAddSelectSite.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a site'**
+  String get quickAddSelectSite;
+
+  /// No description provided for @quickAddSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Entry saved'**
+  String get quickAddSaved;
+
+  /// No description provided for @repeatEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat entry'**
+  String get repeatEntry;
+
+  /// No description provided for @repeatThisEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat this entry'**
+  String get repeatThisEntry;
+
   /// No description provided for @settingsImportCsv.
   ///
   /// In en, this message translates to:
