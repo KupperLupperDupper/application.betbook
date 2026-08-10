@@ -86,7 +86,7 @@ class SettingsCard extends ConsumerWidget {
               value: settings.ratesAutoUpdate,
               onChanged: (v) async {
                 await notifier.setRatesAutoUpdate(v);
-                if (v) await _refreshRates(context, ref);
+                if (v && context.mounted) await _refreshRates(context, ref);
               },
             ),
             ListTile(
@@ -130,7 +130,7 @@ class SettingsCard extends ConsumerWidget {
                   final pin = await showSetPinDialog(context);
                   if (pin != null) {
                     await ref.read(pinRepositoryProvider).setPin(pin);
-                    _toast(context, l10n.toastSaved);
+                    if (context.mounted) _toast(context, l10n.toastSaved);
                   }
                 },
               ),
@@ -209,7 +209,7 @@ class SettingsCard extends ConsumerWidget {
                     info.when(
                       data: (i) => '${i.version} (${i.buildNumber})',
                       loading: () => '…',
-                      error: (_, __) => '—',
+                      error: (_, _) => '—',
                     ),
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
@@ -254,20 +254,22 @@ class SettingsCard extends ConsumerWidget {
     final current = ref.read(settingsProvider).languageCode;
     final picked = await showDialog<String>(
       context: context,
-      builder: (ctx) => SimpleDialog(
-        title: Text(l10n.settingsLanguage),
-        children: [
-          for (final entry in {
-            'en': l10n.languageEnglish,
-            'da': l10n.languageDanish,
-          }.entries)
-            RadioListTile<String>(
-              value: entry.key,
-              groupValue: current,
-              title: Text(entry.value),
-              onChanged: (v) => Navigator.pop(ctx, v),
-            ),
-        ],
+      builder: (ctx) => RadioGroup<String>(
+        groupValue: current,
+        onChanged: (v) => Navigator.pop(ctx, v),
+        child: SimpleDialog(
+          title: Text(l10n.settingsLanguage),
+          children: [
+            for (final entry in {
+              'en': l10n.languageEnglish,
+              'da': l10n.languageDanish,
+            }.entries)
+              RadioListTile<String>(
+                value: entry.key,
+                title: Text(entry.value),
+              ),
+          ],
+        ),
       ),
     );
     if (picked != null) ref.read(settingsProvider.notifier).setLanguage(picked);
@@ -278,18 +280,20 @@ class SettingsCard extends ConsumerWidget {
     final picked = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
-      builder: (ctx) => ListView(
-        shrinkWrap: true,
-        children: [
-          for (final c in kSupportedCurrencies)
-            RadioListTile<String>(
-              value: c.code,
-              groupValue: current,
-              title: Text('${c.code} · ${c.name}'),
-              secondary: Text(c.symbol),
-              onChanged: (v) => Navigator.pop(ctx, v),
-            ),
-        ],
+      builder: (ctx) => RadioGroup<String>(
+        groupValue: current,
+        onChanged: (v) => Navigator.pop(ctx, v),
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            for (final c in kSupportedCurrencies)
+              RadioListTile<String>(
+                value: c.code,
+                title: Text('${c.code} · ${c.name}'),
+                secondary: Text(c.symbol),
+              ),
+          ],
+        ),
       ),
     );
     if (picked != null && picked != current) {

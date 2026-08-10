@@ -280,7 +280,7 @@ class _OptionTile extends StatelessWidget {
                   ),
                 ),
               ),
-              if (trailing != null) trailing!,
+              ?trailing,
               if (selected)
                 Padding(
                   padding: const EdgeInsets.only(left: 8),
