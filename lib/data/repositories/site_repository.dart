@@ -20,7 +20,6 @@ class SiteRepository {
     required int colorValue,
     int? iconCodePoint,
     int sortOrder = 0,
-    String? defaultTagId,
   }) async {
     final id = _uuid.v4();
     final now = DateTime.now();
@@ -35,22 +34,17 @@ class SiteRepository {
         iconCodePoint: Value(iconCodePoint),
         sortOrder: Value(sortOrder),
         createdAt: now,
-        defaultTagId: Value(defaultTagId),
       ),
     );
     return id;
   }
 
-  /// [defaultTagId] is only written when the caller passes it (a present
-  /// [Value]); pass `Value(null)` to clear it, or leave it absent to keep the
-  /// existing default untouched.
   Future<void> updateSite({
     required String id,
     required String name,
     required String currencyCode,
     required int colorValue,
     int? iconCodePoint,
-    Value<String?> defaultTagId = const Value.absent(),
   }) async {
     await _db.ensureRate(currencyCode, DateTime.now());
     await _db.upsertSite(
@@ -60,7 +54,6 @@ class SiteRepository {
         currencyCode: Value(currencyCode),
         colorValue: Value(colorValue),
         iconCodePoint: Value(iconCodePoint),
-        defaultTagId: defaultTagId,
       ),
     );
   }

@@ -10,7 +10,6 @@ import '../features/settings/responsible_gambling_screen.dart';
 import '../features/settings/take_a_break_screen.dart';
 import '../features/sites/edit_site_screen.dart';
 import '../features/sites/site_detail_screen.dart';
-import '../features/tags/tag_management_screen.dart';
 import '../features/transactions/edit_transaction_screen.dart';
 import '../providers/settings_providers.dart';
 import 'routes.dart';
@@ -80,10 +79,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.takeABreak,
         builder: (_, _) => const TakeABreakScreen(),
-      ),
-      GoRoute(
-        path: Routes.tags,
-        builder: (_, _) => const TagManagementScreen(),
       ),
     ],
     errorBuilder: (_, state) => Scaffold(

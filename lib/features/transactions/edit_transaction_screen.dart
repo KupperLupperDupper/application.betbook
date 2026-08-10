@@ -15,11 +15,8 @@ import '../../l10n/l10n_ext.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
-import '../../providers/tags_providers.dart';
 import '../../widgets/amount_keypad.dart';
-import '../../widgets/tag_chip.dart';
 import '../../widgets/undo_snackbar.dart';
-import '../tags/tag_picker_sheet.dart';
 
 /// Full-screen route for creating or editing a transaction. The amount is
 /// entered exclusively through a custom on-screen keypad — the OS keyboard is
@@ -61,22 +58,6 @@ class _EditTransactionScreenState
   bool _initialized = false;
   bool _saving = false;
 
-  /// Assigned tag ids, in order. On a new transaction one entry may be the
-  /// current site's default (see [_prefilledDefaultTagId]).
-  List<String> _tagIds = [];
-
-  /// True once the user has touched the tag set (added, removed, or picked).
-  /// After this we stop auto-swapping the site default (TAGS_HANDOFF §4).
-  bool _tagsUserEdited = false;
-
-  /// The tag id currently in [_tagIds] that came from the selected site's
-  /// default and has not been touched — the one we may swap when the site
-  /// changes. Null once the user edits the set or no default applies.
-  String? _prefilledDefaultTagId;
-
-  /// One-shot guard for applying the initial site's default on a new entry.
-  bool _defaultApplied = false;
-
   @override
   void initState() {
     super.initState();
@@ -85,16 +66,6 @@ class _EditTransactionScreenState
     if (widget.initialRawAmount != null && widget.initialRawAmount!.isNotEmpty) {
       _raw = widget.initialRawAmount!;
     }
-    if (widget.isEditing) _loadTags();
-  }
-
-  /// Prefills an existing transaction's tags without blocking the first build.
-  Future<void> _loadTags() async {
-    final ids = await ref
-        .read(tagRepositoryProvider)
-        .tagIdsForTransaction(widget.transactionId!);
-    if (!mounted) return;
-    setState(() => _tagIds = ids);
   }
 
   @override
@@ -183,48 +154,8 @@ class _EditTransactionScreenState
       },
     );
     if (selected != null && mounted) {
-      setState(() {
-        _siteId = selected;
-        _applySiteDefaultTag();
-      });
+      setState(() => _siteId = selected);
     }
-  }
-
-  /// Prefills (or swaps) the selected site's default tag on a NEW transaction
-  /// (TAGS_HANDOFF §4). It only ever touches a chip it added itself and that the
-  /// user has not modified: once the user edits the tag set, or when editing an
-  /// existing transaction, this is a no-op — a user-added or kept tag is never
-  /// removed. Mutates state fields; wrap the call in setState from handlers.
-  void _applySiteDefaultTag() {
-    if (widget.isEditing || _tagsUserEdited) return;
-    final sites = ref.read(sitesProvider).valueOrNull ?? const <Site>[];
-    final newDefault =
-        sites.where((s) => s.id == _siteId).firstOrNull?.defaultTagId;
-    // Drop the previously auto-added default (still untouched), then add the
-    // new site's default in its place.
-    if (_prefilledDefaultTagId != null) {
-      _tagIds = [..._tagIds]..remove(_prefilledDefaultTagId);
-      _prefilledDefaultTagId = null;
-    }
-    if (newDefault != null &&
-        !_tagIds.contains(newDefault) &&
-        _tagIds.length < 5) {
-      _tagIds = [..._tagIds, newDefault];
-      _prefilledDefaultTagId = newDefault;
-    }
-  }
-
-  void _openTagPicker() {
-    showTagPickerSheet(
-      context,
-      selected: _tagIds,
-      maxSelection: 5,
-      onChanged: (ids) => setState(() {
-        _tagsUserEdited = true;
-        _prefilledDefaultTagId = null;
-        _tagIds = ids;
-      }),
-    );
   }
 
   Future<void> _confirmDelete() async {
@@ -269,7 +200,6 @@ class _EditTransactionScreenState
     final minor = majorToMinor(value);
     final note = _noteController.text.trim();
     final repo = ref.read(transactionRepositoryProvider);
-    final tagRepo = ref.read(tagRepositoryProvider);
     if (widget.isEditing) {
       await repo.updateTransaction(
         id: widget.transactionId!,
@@ -279,16 +209,14 @@ class _EditTransactionScreenState
         date: _date,
         note: note.isEmpty ? null : note,
       );
-      await tagRepo.setTransactionTags(widget.transactionId!, _tagIds);
     } else {
-      final newId = await repo.createTransaction(
+      await repo.createTransaction(
         siteId: _siteId!,
         type: _type,
         amountMinor: minor,
         date: _date,
         note: note.isEmpty ? null : note,
       );
-      await tagRepo.setTransactionTags(newId, _tagIds);
     }
     if (mounted) context.pop();
   }
@@ -351,12 +279,6 @@ class _EditTransactionScreenState
     // Ensure a valid selected site so the display always has a currency.
     _siteId ??= sites.first.id;
 
-    // On a new transaction, prefill the initial site's default tag once.
-    if (!widget.isEditing && !_defaultApplied) {
-      _defaultApplied = true;
-      _applySiteDefaultTag();
-    }
-
     final site = sites.firstWhere(
       (s) => s.id == _siteId,
       orElse: () => sites.first,
@@ -392,8 +314,6 @@ class _EditTransactionScreenState
                     _siteSelector(l10n, site, sites),
                     const SizedBox(height: 12),
                     _dateRow(l10n, locale),
-                    const SizedBox(height: 12),
-                    _tagsRow(l10n),
                     const SizedBox(height: 12),
                     _noteField(l10n),
                   ],
@@ -569,60 +489,6 @@ class _EditTransactionScreenState
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _tagsRow(AppLocalizations l10n) {
-    final theme = Theme.of(context);
-    final allTags = ref.watch(tagsProvider).valueOrNull ?? const <Tag>[];
-    final byId = ref.watch(tagsByIdProvider);
-    final noTagsExist = allTags.isEmpty;
-
-    return SizedBox(
-      width: double.infinity,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.tagsLabel,
-            style: theme.textTheme.labelMedium
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final id in _tagIds)
-                if (byId[id] != null)
-                  TagChip(
-                    label: byId[id]!.name,
-                    dot: byId[id]!.dot,
-                    onRemove: () => setState(() {
-                      _tagsUserEdited = true;
-                      if (_prefilledDefaultTagId == id) {
-                        _prefilledDefaultTagId = null;
-                      }
-                      _tagIds = [..._tagIds]..remove(id);
-                    }),
-                  ),
-              TagChip(
-                label: l10n.addTag,
-                variant: TagChipVariant.add,
-                onTap: _openTagPicker,
-              ),
-            ],
-          ),
-          if (noTagsExist) ...[
-            const SizedBox(height: 8),
-            Text(
-              l10n.tagsExplainer,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-          ],
         ],
       ),
     );

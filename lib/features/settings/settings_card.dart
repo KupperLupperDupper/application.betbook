@@ -166,12 +166,6 @@ class SettingsCard extends ConsumerWidget {
               onTap: () => _importCsv(context, ref),
             ),
             ListTile(
-              leading: const Icon(Icons.sell_outlined),
-              title: Text(l10n.tagsLabel),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => context.push(Routes.tags),
-            ),
-            ListTile(
               leading: Icon(Icons.delete_forever_rounded,
                   color: Theme.of(context).colorScheme.error),
               title: Text(l10n.settingsClearData,

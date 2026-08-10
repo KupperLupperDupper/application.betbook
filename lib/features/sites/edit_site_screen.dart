@@ -1,16 +1,12 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/money/currency.dart';
-import '../../features/tags/tag_picker_sheet.dart';
 import '../../l10n/l10n_ext.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
-import '../../providers/tags_providers.dart';
-import '../../widgets/tag_chip.dart';
 import '../../widgets/undo_snackbar.dart';
 
 /// Palette offered when creating a site.
@@ -34,7 +30,6 @@ class _EditSiteScreenState extends ConsumerState<EditSiteScreen> {
   final _nameController = TextEditingController();
   late String _currency = ref.read(settingsProvider).baseCurrency;
   int _color = _siteColors.first;
-  String? _defaultTagId;
   bool _initialized = false;
   bool _saving = false;
 
@@ -54,14 +49,12 @@ class _EditSiteScreenState extends ConsumerState<EditSiteScreen> {
         name: _nameController.text,
         currencyCode: _currency,
         colorValue: _color,
-        defaultTagId: Value(_defaultTagId),
       );
     } else {
       await repo.createSite(
         name: _nameController.text,
         currencyCode: _currency,
         colorValue: _color,
-        defaultTagId: _defaultTagId,
       );
     }
     if (mounted) context.pop();
@@ -118,7 +111,6 @@ class _EditSiteScreenState extends ConsumerState<EditSiteScreen> {
         _nameController.text = site.name;
         _currency = site.currencyCode;
         _color = site.colorValue;
-        _defaultTagId = site.defaultTagId;
         _initialized = true;
       }
     }
@@ -201,8 +193,6 @@ class _EditSiteScreenState extends ConsumerState<EditSiteScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 24),
-            _defaultTagRow(),
             const SizedBox(height: 32),
             FilledButton(
               onPressed: _saving ? null : _save,
@@ -220,55 +210,6 @@ class _EditSiteScreenState extends ConsumerState<EditSiteScreen> {
     );
   }
 
-  /// Optional default tag for the site (TAGS_HANDOFF §1.1): a single removable
-  /// chip, or the add chip when none is chosen. New transactions for this site
-  /// prefill it as a normal, removable chip.
-  Widget _defaultTagRow() {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-    final tag = _defaultTagId == null
-        ? null
-        : ref.watch(tagsByIdProvider)[_defaultTagId];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.tagsLabel,
-          style: theme.textTheme.labelMedium
-              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            if (tag != null)
-              TagChip(
-                label: tag.name,
-                dot: tag.dot,
-                onRemove: () => setState(() => _defaultTagId = null),
-              )
-            else
-              TagChip(
-                label: l10n.addTag,
-                variant: TagChipVariant.add,
-                onTap: _pickDefaultTag,
-              ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  void _pickDefaultTag() {
-    showTagPickerSheet(
-      context,
-      selected: _defaultTagId == null ? const [] : [_defaultTagId!],
-      maxSelection: 1,
-      onChanged: (ids) =>
-          setState(() => _defaultTagId = ids.isEmpty ? null : ids.first),
-    );
-  }
 }
 
 class _ColorSwatch extends StatelessWidget {

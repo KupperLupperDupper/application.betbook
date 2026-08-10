@@ -5,7 +5,6 @@ import '../data/database/database.dart';
 import '../data/repositories/backup_repository.dart';
 import '../data/repositories/settings_repository.dart';
 import '../data/repositories/site_repository.dart';
-import '../data/repositories/tag_repository.dart';
 import '../data/repositories/transaction_repository.dart';
 
 /// The single Drift database instance for the app's lifetime.
@@ -32,10 +31,6 @@ final siteRepositoryProvider = Provider<SiteRepository>(
 
 final transactionRepositoryProvider = Provider<TransactionRepository>(
   (ref) => TransactionRepository(ref.watch(databaseProvider)),
-);
-
-final tagRepositoryProvider = Provider<TagRepository>(
-  (ref) => TagRepository(ref.watch(databaseProvider)),
 );
 
 final backupServiceProvider = Provider<BackupService>(

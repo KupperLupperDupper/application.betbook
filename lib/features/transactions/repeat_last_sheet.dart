@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../app/routes.dart';
 import '../../core/money/amount_input.dart';
 import '../../core/money/money_format.dart';
 import '../../data/database/database.dart';
@@ -11,11 +13,10 @@ import '../../providers/core_providers.dart';
 import '../../providers/settings_providers.dart';
 import '../../widgets/mini_card_avatar.dart';
 import '../../widgets/undo_snackbar.dart';
-import 'quick_add_sheet.dart';
 
-/// Confirm sheet for repeat-last (QUICKADD_HANDOFF §3.2). Shows exactly what
-/// will be written — never a one-tap silent commit. Note and tags are not
-/// copied: they described the source entry, not this one.
+/// Confirm sheet for repeat-last. Shows exactly what will be written — never a
+/// one-tap silent commit. Note is not copied: it described the source entry,
+/// not this one.
 Future<void> showRepeatLastSheet(
   BuildContext context, {
   required Transaction source,
@@ -109,13 +110,17 @@ class _RepeatLastSheet extends ConsumerWidget {
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    showQuickAddSheet(
-                      context,
-                      initialSiteId: site.id,
-                      initialType: source.type,
-                      initialRawAmount: AmountInput.rawFromMajor(
-                          minorToMajor(source.amountMinor)),
+                    // Open the full editor pre-filled with the source values.
+                    final uri = Uri(
+                      path: Routes.newTransaction,
+                      queryParameters: {
+                        'siteId': site.id,
+                        'type': source.type.name,
+                        'amount': AmountInput.rawFromMajor(
+                            minorToMajor(source.amountMinor)),
+                      },
                     );
+                    context.push(uri.toString());
                   },
                   child: Text(l10n.actionEdit),
                 ),

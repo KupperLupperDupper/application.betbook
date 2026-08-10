@@ -13,7 +13,6 @@ import '../dashboard/dashboard_card.dart';
 import '../settings/settings_card.dart';
 import '../sites/sites_card.dart';
 import '../stats/stats_card.dart';
-import '../transactions/quick_add_sheet.dart';
 import 'playing_card.dart';
 
 /// The deck's deal-in plays once per app process (cold start / after onboarding).
@@ -158,7 +157,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
     if (_index == 0) {
       fab = FloatingActionButton(
         heroTag: null,
-        onPressed: () => showQuickAddSheet(context),
+        onPressed: () => context.push(Routes.newTransaction),
         child: const Icon(Icons.add_rounded),
       );
     } else if (_index == 1) {
