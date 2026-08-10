@@ -18,6 +18,7 @@ import '../../widgets/count_up_amount.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/mini_card_avatar.dart';
 import '../../widgets/suit_loader.dart';
+import '../../widgets/undo_snackbar.dart';
 
 class SiteDetailScreen extends ConsumerWidget {
   const SiteDetailScreen({super.key, required this.siteId});
@@ -31,6 +32,9 @@ class SiteDetailScreen extends ConsumerWidget {
   ) async {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    // Capture the messenger up front — it lives above the router and survives
+    // both the dialog await and the navigation away.
+    final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -52,8 +56,16 @@ class SiteDetailScreen extends ConsumerWidget {
       ),
     );
     if (confirmed != true) return;
-    await ref.read(siteRepositoryProvider).deleteSite(site.id);
+    final repo = ref.read(siteRepositoryProvider);
+    final txns = await repo.transactionsForSite(site.id);
+    await repo.deleteSite(site.id);
     if (context.mounted) context.go(Routes.home);
+    showUndoSnackBar(
+      messenger,
+      message: l10n.siteDeletedSnack(site.name),
+      undoLabel: l10n.actionUndo,
+      onUndo: () => repo.restore(site, txns),
+    );
   }
 
   @override
@@ -173,9 +185,17 @@ class SiteDetailScreen extends ConsumerWidget {
           locale: locale,
           runningNet: runningNet[tx.id] ?? 0,
           onTap: () => context.push(Routes.editTransaction(tx.id)),
-          onDelete: () => ref
-              .read(transactionRepositoryProvider)
-              .deleteTransaction(tx.id),
+          onDelete: () {
+            final messenger = ScaffoldMessenger.of(context);
+            final repo = ref.read(transactionRepositoryProvider);
+            repo.deleteTransaction(tx.id);
+            showUndoSnackBar(
+              messenger,
+              message: context.l10n.txDeletedSnack,
+              undoLabel: context.l10n.actionUndo,
+              onUndo: () => repo.restore(tx),
+            );
+          },
         ),
       );
     }

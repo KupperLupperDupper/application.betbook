@@ -7,6 +7,7 @@ import '../../l10n/l10n_ext.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
+import '../../widgets/undo_snackbar.dart';
 
 /// Palette offered when creating a site.
 const _siteColors = <int>[
@@ -61,6 +62,7 @@ class _EditSiteScreenState extends ConsumerState<EditSiteScreen> {
 
   Future<void> _confirmDelete() async {
     final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -82,8 +84,19 @@ class _EditSiteScreenState extends ConsumerState<EditSiteScreen> {
       ),
     );
     if (ok == true) {
-      await ref.read(siteRepositoryProvider).deleteSite(widget.siteId!);
+      final repo = ref.read(siteRepositoryProvider);
+      final site = ref.read(siteByIdProvider(widget.siteId!)).valueOrNull;
+      final txns = await repo.transactionsForSite(widget.siteId!);
+      await repo.deleteSite(widget.siteId!);
       if (mounted) context.go('/');
+      if (site != null) {
+        showUndoSnackBar(
+          messenger,
+          message: l10n.siteDeletedSnack(site.name),
+          undoLabel: l10n.actionUndo,
+          onUndo: () => repo.restore(site, txns),
+        );
+      }
     }
   }
 

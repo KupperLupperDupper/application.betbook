@@ -8,6 +8,7 @@ import '../../l10n/l10n_ext.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
+import '../../widgets/undo_snackbar.dart';
 
 /// Lets the user view and edit the exchange rates used to convert each site's
 /// currency into their main currency for portfolio totals.
@@ -50,9 +51,17 @@ class ExchangeRatesScreen extends ConsumerWidget {
                   base: base,
                   rate: rate,
                   onEdit: () => _editRate(context, ref, base, rate),
-                  onDelete: () => ref
-                      .read(databaseProvider)
-                      .deleteRate(rate.currencyCode),
+                  onDelete: () {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final db = ref.read(databaseProvider);
+                    db.deleteRate(rate.currencyCode);
+                    showUndoSnackBar(
+                      messenger,
+                      message: l10n.rateDeletedSnack(rate.currencyCode),
+                      undoLabel: l10n.actionUndo,
+                      onUndo: () => db.upsertRate(rate.toCompanion(true)),
+                    );
+                  },
                 ),
               const SizedBox(height: 24),
               OutlinedButton.icon(

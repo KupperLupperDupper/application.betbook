@@ -12,6 +12,16 @@
   "actionBack": "Tilbage",
   "actionSkip": "Spring over",
   "actionConfirm": "Bekræft",
+  "actionUndo": "Fortryd",
+  "siteDeletedSnack": "{name} slettet",
+  "@siteDeletedSnack": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "txDeletedSnack": "Transaktion slettet",
+  "rateDeletedSnack": "{code}-kurs fjernet",
+  "@rateDeletedSnack": {
+    "placeholders": { "code": { "type": "String" } }
+  },
   "actionClose": "Luk",
   "actionRetry": "Prøv igen",
   "actionContinue": "Fortsæt",

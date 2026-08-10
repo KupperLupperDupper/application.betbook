@@ -14,6 +14,7 @@ import '../../l10n/l10n_ext.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
+import '../../widgets/undo_snackbar.dart';
 
 /// Full-screen route for creating or editing a transaction. The amount is
 /// entered exclusively through a custom on-screen keypad — the OS keyboard is
@@ -221,10 +222,19 @@ class _EditTransactionScreenState
       ),
     );
     if (confirmed != true || !mounted) return;
-    await ref
-        .read(transactionRepositoryProvider)
-        .deleteTransaction(widget.transactionId!);
+    final messenger = ScaffoldMessenger.of(context);
+    final repo = ref.read(transactionRepositoryProvider);
+    final tx = await repo.getById(widget.transactionId!);
+    await repo.deleteTransaction(widget.transactionId!);
     if (mounted) context.pop();
+    if (tx != null) {
+      showUndoSnackBar(
+        messenger,
+        message: l10n.txDeletedSnack,
+        undoLabel: l10n.actionUndo,
+        onUndo: () => repo.restore(tx),
+      );
+    }
   }
 
   Future<void> _save() async {

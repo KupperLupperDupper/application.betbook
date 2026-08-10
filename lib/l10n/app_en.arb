@@ -12,6 +12,16 @@
   "actionBack": "Back",
   "actionSkip": "Skip",
   "actionConfirm": "Confirm",
+  "actionUndo": "Undo",
+  "siteDeletedSnack": "{name} deleted",
+  "@siteDeletedSnack": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "txDeletedSnack": "Transaction deleted",
+  "rateDeletedSnack": "{code} rate removed",
+  "@rateDeletedSnack": {
+    "placeholders": { "code": { "type": "String" } }
+  },
   "actionClose": "Close",
   "actionRetry": "Retry",
   "actionContinue": "Continue",

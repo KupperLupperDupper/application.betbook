@@ -164,6 +164,30 @@ abstract class AppLocalizations {
   /// **'Confirm'**
   String get actionConfirm;
 
+  /// No description provided for @actionUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get actionUndo;
+
+  /// No description provided for @siteDeletedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} deleted'**
+  String siteDeletedSnack(String name);
+
+  /// No description provided for @txDeletedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction deleted'**
+  String get txDeletedSnack;
+
+  /// No description provided for @rateDeletedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'{code} rate removed'**
+  String rateDeletedSnack(String code);
+
   /// No description provided for @actionClose.
   ///
   /// In en, this message translates to:

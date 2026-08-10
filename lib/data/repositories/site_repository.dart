@@ -59,4 +59,13 @@ class SiteRepository {
   }
 
   Future<void> deleteSite(String id) => _db.deleteSite(id);
+
+  /// Transactions belonging to [siteId] — captured before a delete so Undo can
+  /// restore them (deleting a site cascades its transactions away).
+  Future<List<Transaction>> transactionsForSite(String siteId) =>
+      _db.getTransactionsForSite(siteId);
+
+  /// Re-inserts a deleted site and its captured transactions (Undo).
+  Future<void> restore(Site site, List<Transaction> txns) =>
+      _db.restoreSiteWithTransactions(site, txns);
 }

@@ -54,6 +54,19 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteSite(String id) =>
       (delete(sites)..where((s) => s.id.equals(id))).go();
 
+  /// Re-inserts a deleted site together with the transactions that cascaded
+  /// away with it (parent first so the foreign key holds). Used by Undo.
+  Future<void> restoreSiteWithTransactions(
+    Site site,
+    List<Transaction> txns,
+  ) =>
+      transaction(() async {
+        await upsertSite(site.toCompanion(true));
+        for (final tx in txns) {
+          await upsertTransaction(tx.toCompanion(true));
+        }
+      });
+
   // ---------------------------------------------------------------------------
   // Transactions
   // ---------------------------------------------------------------------------
@@ -81,6 +94,12 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<Transaction>> getAllTransactions() =>
       select(transactions).get();
+
+  Future<List<Transaction>> getTransactionsForSite(String siteId) =>
+      (select(transactions)..where((t) => t.siteId.equals(siteId))).get();
+
+  Future<Transaction?> getTransaction(String id) =>
+      (select(transactions)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   Future<void> upsertTransaction(TransactionsCompanion tx) =>
       into(transactions).insertOnConflictUpdate(tx);

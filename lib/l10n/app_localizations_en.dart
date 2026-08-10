@@ -42,6 +42,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionConfirm => 'Confirm';
 
   @override
+  String get actionUndo => 'Undo';
+
+  @override
+  String siteDeletedSnack(String name) {
+    return '$name deleted';
+  }
+
+  @override
+  String get txDeletedSnack => 'Transaction deleted';
+
+  @override
+  String rateDeletedSnack(String code) {
+    return '$code rate removed';
+  }
+
+  @override
   String get actionClose => 'Close';
 
   @override

@@ -59,4 +59,10 @@ class TransactionRepository {
   }
 
   Future<void> deleteTransaction(String id) => _db.deleteTransaction(id);
+
+  Future<Transaction?> getById(String id) => _db.getTransaction(id);
+
+  /// Re-inserts a previously deleted transaction verbatim (Undo).
+  Future<void> restore(Transaction tx) =>
+      _db.upsertTransaction(tx.toCompanion(true));
 }

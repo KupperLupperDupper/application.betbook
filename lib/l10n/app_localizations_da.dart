@@ -42,6 +42,22 @@ class AppLocalizationsDa extends AppLocalizations {
   String get actionConfirm => 'Bekræft';
 
   @override
+  String get actionUndo => 'Fortryd';
+
+  @override
+  String siteDeletedSnack(String name) {
+    return '$name slettet';
+  }
+
+  @override
+  String get txDeletedSnack => 'Transaktion slettet';
+
+  @override
+  String rateDeletedSnack(String code) {
+    return '$code-kurs fjernet';
+  }
+
+  @override
   String get actionClose => 'Luk';
 
   @override
