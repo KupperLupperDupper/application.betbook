@@ -17,6 +17,7 @@ import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
 import '../../widgets/count_up_amount.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/skeleton.dart';
 
 /// Short, symbol-less axis label (e.g. `4,8K`, `0`, `-200`) — the currency
 /// symbol on every gridline made labels too wide and they overlapped.
@@ -60,17 +61,32 @@ class _StatsCardState extends ConsumerState<StatsCard> {
     final theme = Theme.of(context);
     final locale = ref.watch(settingsProvider.select((s) => s.languageCode));
     final base = ref.watch(settingsProvider.select((s) => s.baseCurrency));
-    final sites = ref.watch(sitesProvider).valueOrNull ?? const <Site>[];
-    final txs = ref.watch(allTransactionsProvider).valueOrNull ??
-        const <Transaction>[];
+    final sitesAsync = ref.watch(sitesProvider);
+    final txsAsync = ref.watch(allTransactionsProvider);
     final rates = ref.watch(rateMapProvider);
 
+    // While the deck-card list is about to appear, show the skeleton.
+    if (sitesAsync.isLoading || txsAsync.isLoading) {
+      return const SkeletonSwitcher(
+        loading: true,
+        skeleton: _StatsSkeleton(),
+        child: SizedBox.shrink(),
+      );
+    }
+
+    final sites = sitesAsync.valueOrNull ?? const <Site>[];
+    final txs = txsAsync.valueOrNull ?? const <Transaction>[];
+
     if (txs.length < 2) {
-      return EmptyState(
-        title: l10n.statsNoData,
-        message: l10n.statsNoDataBody,
-        actionLabel: l10n.txAdd,
-        onAction: () => context.push(Routes.newTransaction),
+      return SkeletonSwitcher(
+        loading: false,
+        skeleton: const _StatsSkeleton(),
+        child: EmptyState(
+          title: l10n.statsNoData,
+          message: l10n.statsNoDataBody,
+          actionLabel: l10n.txAdd,
+          onAction: () => context.push(Routes.newTransaction),
+        ),
       );
     }
 
@@ -93,9 +109,12 @@ class _StatsCardState extends ConsumerState<StatsCard> {
     final summaries =
         ref.watch(portfolioProvider)?.siteSummaries ?? const <String, SiteSummary>{};
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-      children: [
+    return SkeletonSwitcher(
+      loading: false,
+      skeleton: const _StatsSkeleton(),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+        children: [
         SizedBox(
           height: 40,
           child: ListView(
@@ -159,7 +178,84 @@ class _StatsCardState extends ConsumerState<StatsCard> {
             child: _MonthlyBarChart(data: monthly, base: base, locale: locale),
           ),
         ],
-      ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Skeleton for the Stats deck card (MOTION_HANDOFF §4.3).
+class _StatsSkeleton extends StatelessWidget {
+  const _StatsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cw = constraints.maxWidth - 32; // 16 padding each side
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            SkeletonBlock(width: cw * 0.34, height: 12),
+            const SizedBox(height: 12),
+            // Chart card with an inner baseline at 60% height.
+            SizedBox(
+              width: cw,
+              height: 168,
+              child: Stack(
+                children: [
+                  const Positioned.fill(
+                    child: SkeletonBlock(height: 168, radius: 16),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 168 * 0.6,
+                    child: Container(
+                      height: 1,
+                      color: theme.colorScheme.outlineVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Row(
+              children: [
+                SkeletonBlock(width: 64, height: 32, radius: 12),
+                SizedBox(width: 8),
+                SkeletonBlock(width: 88, height: 32, radius: 12),
+                SizedBox(width: 8),
+                SkeletonBlock(width: 72, height: 32, radius: 12),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _SkeletonSummaryRow(contentWidth: cw),
+            _SkeletonSummaryRow(contentWidth: cw),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SkeletonSummaryRow extends StatelessWidget {
+  const _SkeletonSummaryRow({required this.contentWidth});
+
+  final double contentWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          SkeletonBlock(width: contentWidth * 0.40, height: 16),
+          SkeletonBlock(width: contentWidth * 0.22, height: 16),
+        ],
+      ),
     );
   }
 }

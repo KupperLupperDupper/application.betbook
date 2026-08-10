@@ -11,10 +11,12 @@ import '../../core/theme/money_colors.dart';
 import '../../data/database/database.dart';
 import '../../l10n/l10n_ext.dart';
 import '../../providers/data_providers.dart';
+import '../../providers/rates_providers.dart';
 import '../../providers/settings_providers.dart';
 import '../../widgets/count_up_amount.dart';
 import '../../widgets/empty_state.dart';
-import '../../widgets/suit_loader.dart';
+import '../../widgets/shuffle_refresh.dart';
+import '../../widgets/skeleton.dart';
 import '../sites/widgets/site_tile.dart';
 
 class DashboardCard extends ConsumerWidget {
@@ -28,7 +30,11 @@ class DashboardCard extends ConsumerWidget {
     final locale = ref.watch(settingsProvider.select((s) => s.languageCode));
 
     return sitesAsync.when(
-      loading: () => const Center(child: SuitLoader()),
+      loading: () => const SkeletonSwitcher(
+        loading: true,
+        skeleton: _DashboardSkeleton(),
+        child: SizedBox.shrink(),
+      ),
       error: (e, _) => Center(child: Text(l10n.commonError)),
       data: (sites) {
         if (sites.isEmpty || (portfolio != null && portfolio.isEmpty)) {
@@ -40,15 +46,87 @@ class DashboardCard extends ConsumerWidget {
             footnote: l10n.allDataOnDevice,
           );
         }
-        if (portfolio == null) {
-          return const Center(child: SuitLoader());
-        }
-        return _DashboardBody(
-          sites: sites,
-          portfolio: portfolio,
-          localeName: locale,
+        final loading = portfolio == null;
+        return SkeletonSwitcher(
+          loading: loading,
+          skeleton: const _DashboardSkeleton(),
+          child: loading
+              ? const SizedBox.shrink()
+              : _DashboardBody(
+                  sites: sites,
+                  portfolio: portfolio,
+                  localeName: locale,
+                ),
         );
       },
+    );
+  }
+}
+
+/// Skeleton for the Dashboard deck card (MOTION_HANDOFF §4.3).
+class _DashboardSkeleton extends StatelessWidget {
+  const _DashboardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cw = constraints.maxWidth - 32; // 16 padding each side
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            SkeletonBlock(width: cw * 0.40, height: 12),
+            const SizedBox(height: 12),
+            SkeletonBlock(width: cw * 0.62, height: 44),
+            const SizedBox(height: 8),
+            SkeletonBlock(width: cw * 0.48, height: 16),
+            const SizedBox(height: 24),
+            const Row(
+              children: [
+                Expanded(child: SkeletonBlock(height: 88, radius: 16)),
+                SizedBox(width: 12),
+                Expanded(child: SkeletonBlock(height: 88, radius: 16)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            SkeletonBlock(width: cw * 0.30, height: 12),
+            const SizedBox(height: 12),
+            for (var i = 0; i < 3; i++) _SkeletonTxRow(contentWidth: cw),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SkeletonTxRow extends StatelessWidget {
+  const _SkeletonTxRow({required this.contentWidth});
+
+  final double contentWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 64,
+      child: Row(
+        children: [
+          const SkeletonBlock(width: 36, height: 36, radius: 12),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonBlock(width: contentWidth * 0.52, height: 16),
+                const SizedBox(height: 6),
+                SkeletonBlock(width: contentWidth * 0.34, height: 12),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          SkeletonBlock(width: contentWidth * 0.22, height: 16),
+        ],
+      ),
     );
   }
 }
@@ -95,9 +173,15 @@ class _DashboardBody extends ConsumerWidget {
             ? l10n.dashboardDownOverall
             : l10n.dashboardEvenOverall;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 140),
-      children: [
+    return ShuffleRefresh(
+      onRefresh: () async {
+        await ref.read(ratesUpdaterProvider).refreshNow();
+      },
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 140),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
         Text(
           '${l10n.dashboardAllTime} · $base',
           style: theme.textTheme.bodySmall
@@ -173,6 +257,9 @@ class _DashboardBody extends ConsumerWidget {
             countUpIndex: i + 3,
             onTap: () => context.push(Routes.siteDetail(site.id)),
           ),
+            ]),
+          ),
+        ),
       ],
     );
   }
