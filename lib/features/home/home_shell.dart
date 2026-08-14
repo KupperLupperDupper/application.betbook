@@ -179,22 +179,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    // Dashboard → compact "add transaction"; Sites → extended "add site".
-    Widget? fab;
-    if (_index == 0) {
-      fab = FloatingActionButton(
-        heroTag: null,
-        onPressed: () => context.push(Routes.newTransaction),
-        child: const Icon(Icons.add_rounded),
-      );
-    } else if (_index == 1) {
-      fab = FloatingActionButton.extended(
-        heroTag: null,
-        onPressed: () => context.push(Routes.newSite),
-        icon: const Icon(Icons.add_rounded),
-        label: Text(l10n.siteAdd),
-      );
-    }
+    final viewBottom = MediaQuery.viewPaddingOf(context).bottom;
 
     return Scaffold(
       body: SafeArea(
@@ -221,33 +206,27 @@ class _HomeShellState extends ConsumerState<HomeShell>
                 );
               },
             ),
-            // FAB, bottom-right, clearing the nav pill (v5 §4).
-            if (fab != null)
-              Positioned(
-                right: 20,
-                bottom: 92,
-                child: _DealInFade(
-                  listenable: _dealIn,
-                  start: 790 / 1000,
-                  end: 970 / 1000,
-                  scaleFrom: 0.9,
-                  child: fab,
-                ),
-              ),
+            // The v6 bottom bar: suits + centred add, fading in with the deal.
             Positioned(
               left: 0,
               right: 0,
-              bottom: 22,
+              bottom: viewBottom > AppBottomBar.bottomInset
+                  ? viewBottom
+                  : AppBottomBar.bottomInset,
               child: Center(
                 child: _DealInFade(
                   listenable: _dealIn,
                   start: 730 / 1000,
                   end: 930 / 1000,
-                  child: _NavPill(
+                  child: _BottomBar(
+                    controller: _controller,
                     suits: [for (final s in _sections) s.suit],
-                    index: _index,
                     labels: [for (final s in _sections) s.label(context)],
+                    index: _index,
                     onTap: _goTo,
+                    onAdd: () => context.push(
+                        _index == 0 ? Routes.newTransaction : Routes.newSite),
+                    addLabel: _index == 0 ? l10n.txAdd : l10n.siteAdd,
                   ),
                 ),
               ),
@@ -266,13 +245,11 @@ class _DealInFade extends StatelessWidget {
     required this.start,
     required this.end,
     required this.child,
-    this.scaleFrom = 1.0,
   });
 
   final Animation<double> listenable;
   final double start;
   final double end;
-  final double scaleFrom;
   final Widget child;
 
   @override
@@ -283,10 +260,7 @@ class _DealInFade extends StatelessWidget {
       builder: (context, child) {
         final t = ((listenable.value - start) / (end - start)).clamp(0.0, 1.0);
         final e = Curves.easeOutCubic.transform(t);
-        return Opacity(
-          opacity: e,
-          child: Transform.scale(scale: lerpDouble(scaleFrom, 1.0, e), child: child),
-        );
+        return Opacity(opacity: e, child: child);
       },
     );
   }
@@ -423,70 +397,205 @@ class _AnimatedDeckItem extends StatelessWidget {
   }
 }
 
-/// The bottom nav pill (v5 §4): an opaque ♠ ♥ ♦ ♣ pill that reads as tappable
-/// navigation — the active suit sits in a primaryContainer capsule. This is the
-/// permanent swipe/nav cue now that the cards no longer peek.
-class _NavPill extends StatelessWidget {
-  const _NavPill({
+/// The v6 bottom bar (BOTTOMBAR_HANDOFF): one opaque `♠ ♥ (+) ♦ ♣` pill. The
+/// suits are the tappable section indicators; the centred circular button is the
+/// primary add action, which fades down while the bar contracts (304 → 232 dp)
+/// on sections with no add action.
+class _BottomBar extends StatefulWidget {
+  const _BottomBar({
+    required this.controller,
     required this.suits,
-    required this.index,
     required this.labels,
+    required this.index,
     required this.onTap,
+    required this.onAdd,
+    required this.addLabel,
   });
 
+  final PageController controller;
   final List<CardSuit> suits;
-  final int index;
   final List<String> labels;
+  final int index;
   final ValueChanged<int> onTap;
+  final VoidCallback onAdd;
+  final String addLabel;
+
+  static bool hasAdd(int i) => i == 0 || i == 1;
+
+  @override
+  State<_BottomBar> createState() => _BottomBarState();
+}
+
+class _BottomBarState extends State<_BottomBar>
+    with SingleTickerProviderStateMixin {
+  // 1 = add button present + bar expanded; 0 = absent + contracted.
+  late final AnimationController _add = AnimationController(
+    vsync: this,
+    value: _BottomBar.hasAdd(widget.index) ? 1.0 : 0.0,
+    duration: AppBottomBar.addIn,
+  );
+  int _lastNearest = -1;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onScroll);
+    _add.dispose();
+    super.dispose();
+  }
+
+  /// Toggle the add button as the page offset crosses 0.5 toward a neighbour.
+  void _onScroll() {
+    if (!widget.controller.hasClients ||
+        !widget.controller.position.haveDimensions) {
+      return;
+    }
+    final nearest =
+        (widget.controller.page ?? widget.index.toDouble()).round();
+    if (nearest == _lastNearest) return;
+    _lastNearest = nearest;
+    final want = _BottomBar.hasAdd(nearest) ? 1.0 : 0.0;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _add.value = want;
+    } else {
+      _add.animateTo(want,
+          duration: want == 1 ? AppBottomBar.addIn : AppBottomBar.addOut,
+          curve: AppBottomBar.addCurve);
+    }
+  }
+
+  double get _page => (widget.controller.hasClients &&
+          widget.controller.position.haveDimensions)
+      ? (widget.controller.page ?? widget.index.toDouble())
+      : widget.index.toDouble();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        // Opaque so no scrolling content can bleed through onto the glyphs.
-        color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: DeckSurface.hairline(theme.brightness)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < suits.length; i++)
-            Padding(
-              padding: EdgeInsets.only(left: i == 0 ? 0 : 4),
-              child: Semantics(
-                button: true,
-                selected: i == index,
-                label: labels[i],
-                child: InkWell(
-                  onTap: () => onTap(i),
-                  borderRadius: BorderRadius.circular(17),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 44,
-                    height: 34,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: i == index
-                          ? scheme.primaryContainer
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(17),
-                    ),
-                    child: SuitIcon(
-                      suit: suits[i],
-                      color: i == index
-                          ? scheme.onPrimaryContainer
-                          : scheme.outline,
-                      size: i == index ? 17 : 15,
-                    ),
+    return AnimatedBuilder(
+      animation: Listenable.merge([widget.controller, _add]),
+      builder: (context, _) {
+        final a = _add.value; // 0 collapsed → 1 expanded
+        final page = _page;
+        final gap = lerpDouble(
+            AppBottomBar.centreGapTight, AppBottomBar.centreGap, a)!;
+        final slotW = lerpDouble(0, AppBottomBar.slot, a)!;
+
+        final bar = Container(
+          height: AppBottomBar.height,
+          padding: const EdgeInsets.all(AppBottomBar.padding),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHigh, // opaque
+            borderRadius: BorderRadius.circular(AppBottomBar.radius),
+            border: Border.all(color: DeckSurface.hairline(theme.brightness)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _indicator(0, page, scheme),
+              const SizedBox(width: AppBottomBar.itemGap),
+              _indicator(1, page, scheme),
+              SizedBox(width: gap),
+              SizedBox(width: slotW),
+              SizedBox(width: gap),
+              _indicator(2, page, scheme),
+              const SizedBox(width: AppBottomBar.itemGap),
+              _indicator(3, page, scheme),
+            ],
+          ),
+        );
+
+        return Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            bar,
+            // Centred add button; drops straight down + fades as the bar closes.
+            if (a > 0)
+              IgnorePointer(
+                ignoring: a < 0.99,
+                child: Opacity(
+                  opacity: a,
+                  child: Transform.translate(
+                    offset: Offset(0, (1 - a) * AppBottomBar.addHiddenDy),
+                    child: _addButton(theme, scheme),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _indicator(int i, double page, ColorScheme scheme) {
+    final active = (1 - (page - i).abs()).clamp(0.0, 1.0);
+    final size =
+        lerpDouble(AppBottomBar.glyphResting, AppBottomBar.glyphActive, active)!;
+    final color = Color.lerp(scheme.outline, scheme.primary, active)!;
+    return Semantics(
+      button: true,
+      selected: i == widget.index,
+      label: widget.labels[i],
+      child: InkResponse(
+        onTap: () => widget.onTap(i),
+        radius: 26,
+        child: SizedBox(
+          width: AppBottomBar.itemSize,
+          height: AppBottomBar.itemSize,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SuitIcon(suit: widget.suits[i], color: color, size: size),
+              const SizedBox(height: AppBottomBar.underlineGap),
+              // Underline slot always reserved; only its opacity changes.
+              Opacity(
+                opacity: active,
+                child: Container(
+                  width: AppBottomBar.underlineW,
+                  height: AppBottomBar.underlineH,
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _addButton(ThemeData theme, ColorScheme scheme) {
+    final dark = theme.brightness == Brightness.dark;
+    return Semantics(
+      button: true,
+      label: widget.addLabel,
+      child: Material(
+        color: scheme.primaryContainer,
+        shape: dark
+            ? CircleBorder(
+                side: BorderSide(color: DeckSurface.hairline(theme.brightness)))
+            : const CircleBorder(),
+        elevation: dark ? 0 : 2,
+        shadowColor: Colors.black.withValues(alpha: 0.18),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: widget.onAdd,
+          child: SizedBox(
+            width: AppBottomBar.addSize,
+            height: AppBottomBar.addSize,
+            child: Icon(Icons.add_rounded,
+                size: AppBottomBar.addGlyph, color: scheme.onPrimaryContainer),
+          ),
+        ),
       ),
     );
   }

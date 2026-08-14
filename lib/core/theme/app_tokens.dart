@@ -53,6 +53,37 @@ class AppDeck {
   static const suits = ['\u2660', '\u2665', '\u2666', '\u2663'];
 }
 
+/// Bottom bar (v6): one anchored `♠ ♥ (+) ♦ ♣` pill carrying the section
+/// indicators and the centred add action. Contracts 304 → 232 dp when the add
+/// button drops out on sections with no add action. See BOTTOMBAR_HANDOFF.md.
+class AppBottomBar {
+  static const double height = 64;
+  static const double widthExpanded = 304; // with the add button
+  static const double widthCollapsed = 232; // without it
+  static const double radius = 32;
+  static const double padding = 6;
+  static const double bottomInset = 20; // max(this, viewPadding.bottom)
+  static const double itemSize = 48; // per suit, visual box = tap target
+  static const double itemGap = 4; // within a pair
+  static const double centreGap = 20; // each side of the button
+  static const double centreGapTight = 10; // between the pairs, button away
+  static const double slot = 52; // centre slot width with the button (0 without)
+  static const double glyphResting = 15;
+  static const double glyphActive = 17;
+  static const double underlineW = 10;
+  static const double underlineH = 3;
+  static const double underlineGap = 5;
+  static const double addSize = 52; // circular, radius = addSize / 2
+  static const double addGlyph = 26;
+
+  // Motion: one controller drives the button opacity/drop, the centre gap and
+  // the bar width together.
+  static const Duration addOut = Duration(milliseconds: 200);
+  static const Duration addIn = Duration(milliseconds: 220);
+  static const Curve addCurve = Curves.easeOutCubic;
+  static const double addHiddenDy = 40; // dp, straight down, no scale
+}
+
 /// Categorical series palette. Pair each hue with a distinct marker shape.
 class ChartPalette {
   static const light = [
