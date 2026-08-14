@@ -46,7 +46,7 @@ class TransactionRepository {
     required DateTime date,
     String? note,
   }) async {
-    await _db.upsertTransaction(
+    await _db.updateTransactionFields(
       TransactionsCompanion(
         id: Value(id),
         siteId: Value(siteId),

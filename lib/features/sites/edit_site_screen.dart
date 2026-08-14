@@ -43,21 +43,30 @@ class _EditSiteScreenState extends ConsumerState<EditSiteScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     final repo = ref.read(siteRepositoryProvider);
-    if (widget.isEditing) {
-      await repo.updateSite(
-        id: widget.siteId!,
-        name: _nameController.text,
-        currencyCode: _currency,
-        colorValue: _color,
-      );
-    } else {
-      await repo.createSite(
-        name: _nameController.text,
-        currencyCode: _currency,
-        colorValue: _color,
-      );
+    final messenger = ScaffoldMessenger.of(context);
+    final errorText = context.l10n.commonError;
+    try {
+      if (widget.isEditing) {
+        await repo.updateSite(
+          id: widget.siteId!,
+          name: _nameController.text,
+          currencyCode: _currency,
+          colorValue: _color,
+        );
+      } else {
+        await repo.createSite(
+          name: _nameController.text,
+          currencyCode: _currency,
+          colorValue: _color,
+        );
+      }
+      if (mounted) context.pop();
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(errorText)));
     }
-    if (mounted) context.pop();
   }
 
   Future<void> _confirmDelete() async {

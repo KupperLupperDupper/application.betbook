@@ -47,7 +47,7 @@ class SiteRepository {
     int? iconCodePoint,
   }) async {
     await _db.ensureRate(currencyCode, DateTime.now());
-    await _db.upsertSite(
+    await _db.updateSiteFields(
       SitesCompanion(
         id: Value(id),
         name: Value(name.trim()),

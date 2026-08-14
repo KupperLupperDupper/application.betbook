@@ -200,25 +200,35 @@ class _EditTransactionScreenState
     final minor = majorToMinor(value);
     final note = _noteController.text.trim();
     final repo = ref.read(transactionRepositoryProvider);
-    if (widget.isEditing) {
-      await repo.updateTransaction(
-        id: widget.transactionId!,
-        siteId: _siteId!,
-        type: _type,
-        amountMinor: minor,
-        date: _date,
-        note: note.isEmpty ? null : note,
-      );
-    } else {
-      await repo.createTransaction(
-        siteId: _siteId!,
-        type: _type,
-        amountMinor: minor,
-        date: _date,
-        note: note.isEmpty ? null : note,
-      );
+    final messenger = ScaffoldMessenger.of(context);
+    final errorText = context.l10n.commonError;
+    try {
+      if (widget.isEditing) {
+        await repo.updateTransaction(
+          id: widget.transactionId!,
+          siteId: _siteId!,
+          type: _type,
+          amountMinor: minor,
+          date: _date,
+          note: note.isEmpty ? null : note,
+        );
+      } else {
+        await repo.createTransaction(
+          siteId: _siteId!,
+          type: _type,
+          amountMinor: minor,
+          date: _date,
+          note: note.isEmpty ? null : note,
+        );
+      }
+      if (mounted) context.pop();
+    } catch (_) {
+      // Never leave the button spinning on a write failure.
+      if (mounted) setState(() => _saving = false);
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(errorText)));
     }
-    if (mounted) context.pop();
   }
 
   // ── Build ────────────────────────────────────────────────────────────────

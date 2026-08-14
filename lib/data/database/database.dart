@@ -51,6 +51,12 @@ class AppDatabase extends _$AppDatabase {
   Future<void> upsertSite(SitesCompanion site) =>
       into(sites).insertOnConflictUpdate(site);
 
+  /// Updates only the columns present in [site] on the row with its id. Unlike
+  /// [upsertSite] (insert-or-update), this does NOT require the non-null
+  /// insert-only columns like `createdAt`, so a partial edit is valid.
+  Future<void> updateSiteFields(SitesCompanion site) =>
+      (update(sites)..where((s) => s.id.equals(site.id.value))).write(site);
+
   Future<void> deleteSite(String id) =>
       (delete(sites)..where((s) => s.id.equals(id))).go();
 
@@ -103,6 +109,12 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> upsertTransaction(TransactionsCompanion tx) =>
       into(transactions).insertOnConflictUpdate(tx);
+
+  /// Updates only the present columns on the row with [tx]'s id — safe for a
+  /// partial edit that omits insert-only columns like `createdAt`.
+  Future<void> updateTransactionFields(TransactionsCompanion tx) =>
+      (update(transactions)..where((t) => t.id.equals(tx.id.value)))
+          .write(tx);
 
   Future<void> deleteTransaction(String id) =>
       (delete(transactions)..where((t) => t.id.equals(id))).go();
