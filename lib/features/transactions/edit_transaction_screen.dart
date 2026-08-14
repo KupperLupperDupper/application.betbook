@@ -16,6 +16,7 @@ import '../../providers/core_providers.dart';
 import '../../providers/data_providers.dart';
 import '../../providers/settings_providers.dart';
 import '../../widgets/amount_keypad.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/undo_snackbar.dart';
 
 /// Full-screen route for creating or editing a transaction. The amount is
@@ -265,23 +266,14 @@ class _EditTransactionScreenState
           ),
           title: Text(l10n.txAdd),
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(l10n.txSelectSite, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: () {
-                  context.pop();
-                  context.push(Routes.newSite);
-                },
-                icon: const Icon(Icons.add_rounded),
-                label: Text(l10n.siteAdd),
-              ),
-            ],
-          ),
+        // Match the app's empty-state pattern (suit mark + headline). Push the
+        // add-site route (don't pop) so returning lands back here — the form
+        // then appears, since sitesProvider now has the new site.
+        body: EmptyState(
+          title: l10n.txNoSitesTitle,
+          message: l10n.txNoSitesBody,
+          actionLabel: l10n.siteAdd,
+          onAction: () => context.push(Routes.newSite),
         ),
       );
     }

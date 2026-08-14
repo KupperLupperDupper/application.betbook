@@ -112,6 +112,8 @@
   "txDate": "Date",
   "txSite": "Site",
   "txSelectSite": "Select a site",
+  "txNoSitesTitle": "Add a site first",
+  "txNoSitesBody": "You need a site before you can log a transaction. Add the one you play on to get started.",
   "txNote": "Note",
   "txNoteHint": "Optional note",
   "txDelete": "Delete transaction",

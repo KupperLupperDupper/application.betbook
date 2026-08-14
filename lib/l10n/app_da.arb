@@ -112,6 +112,8 @@
   "txDate": "Dato",
   "txSite": "Side",
   "txSelectSite": "Vælg en side",
+  "txNoSitesTitle": "Tilføj et spillested først",
+  "txNoSitesBody": "Du skal have et spillested, før du kan registrere en transaktion. Tilføj det, du spiller på, for at komme i gang.",
   "txNote": "Note",
   "txNoteHint": "Valgfri note",
   "txDelete": "Slet transaktion",

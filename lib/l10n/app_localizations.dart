@@ -626,6 +626,18 @@ abstract class AppLocalizations {
   /// **'Select a site'**
   String get txSelectSite;
 
+  /// No description provided for @txNoSitesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a site first'**
+  String get txNoSitesTitle;
+
+  /// No description provided for @txNoSitesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You need a site before you can log a transaction. Add the one you play on to get started.'**
+  String get txNoSitesBody;
+
   /// No description provided for @txNote.
   ///
   /// In en, this message translates to:

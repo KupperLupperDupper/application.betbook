@@ -303,6 +303,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get txSelectSite => 'Select a site';
 
   @override
+  String get txNoSitesTitle => 'Add a site first';
+
+  @override
+  String get txNoSitesBody =>
+      'You need a site before you can log a transaction. Add the one you play on to get started.';
+
+  @override
   String get txNote => 'Note';
 
   @override

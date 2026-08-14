@@ -303,6 +303,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get txSelectSite => 'Vælg en side';
 
   @override
+  String get txNoSitesTitle => 'Tilføj et spillested først';
+
+  @override
+  String get txNoSitesBody =>
+      'Du skal have et spillested, før du kan registrere en transaktion. Tilføj det, du spiller på, for at komme i gang.';
+
+  @override
   String get txNote => 'Note';
 
   @override
