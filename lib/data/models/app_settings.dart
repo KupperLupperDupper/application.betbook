@@ -25,6 +25,7 @@ class AppSettings {
     this.rgReachedKey = '',
     this.rgNetLossKey = '',
     this.breakUntilMillis = 0,
+    this.deckNudgeShown = false,
   });
 
   final ThemeMode themeMode;
@@ -62,6 +63,9 @@ class AppSettings {
   /// Epoch millis until which a "take a break" is active (0 = no break).
   final int breakUntilMillis;
 
+  /// Whether the one-shot first-run deck swipe nudge has already played.
+  final bool deckNudgeShown;
+
   Locale get locale => Locale(languageCode);
 
   DateTime? get breakUntil =>
@@ -95,6 +99,7 @@ class AppSettings {
     String? rgReachedKey,
     String? rgNetLossKey,
     int? breakUntilMillis,
+    bool? deckNudgeShown,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -117,6 +122,7 @@ class AppSettings {
       rgReachedKey: rgReachedKey ?? this.rgReachedKey,
       rgNetLossKey: rgNetLossKey ?? this.rgNetLossKey,
       breakUntilMillis: breakUntilMillis ?? this.breakUntilMillis,
+      deckNudgeShown: deckNudgeShown ?? this.deckNudgeShown,
     );
   }
 }

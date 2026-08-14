@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_tokens.dart';
 import '../../core/theme/deck_motion.dart';
 import '../../widgets/suit_icon.dart';
 
@@ -50,68 +51,72 @@ class PlayingCard extends StatelessWidget {
           Color.lerp(hairline, DeckSurface.hairlineSettle(brightness), settle)!;
     }
 
+    // v5 full-bleed: edge-to-edge, top-only radius, hairline flush to the
+    // screen edge (bottom runs off-screen). The pip lives in the header band.
     return Padding(
-      padding: const EdgeInsets.only(top: 6, bottom: 12, left: 6, right: 6),
+      padding: AppDeck.cardPadding,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: scheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: AppDeck.shape,
           border: Border.all(color: hairline),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: AppDeck.shape,
           child: Stack(
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 22, 18, 8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                label.toUpperCase(),
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                  letterSpacing: 1.2,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              if (subtitle != null) ...[
-                                const SizedBox(height: 2),
+                  // Header band (§3): section title + trailing suit pip.
+                  SizedBox(
+                    height: 52,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 20, right: 20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Text(
-                                  subtitle!,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
+                                  label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.headlineSmall?.copyWith(
+                                    color: scheme.onSurface,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
+                                if (subtitle != null)
+                                  Text(
+                                    subtitle!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
                               ],
-                            ],
+                            ),
                           ),
-                        ),
-                        // Quiet corner pip.
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: SuitIcon(
-                              suit: suit,
-                              color: DeckSurface.pip(brightness),
-                              size: 16),
-                        ),
-                      ],
+                          SuitIcon(
+                            suit: suit,
+                            color: DeckSurface.pip(brightness),
+                            size: 15,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   Expanded(child: child),
                 ],
               ),
-              // Dark-only top-edge highlight, fading at the corners.
+              // Dark-only top-edge highlight, inset from the corners.
               if (brightness == Brightness.dark)
                 Positioned(
-                  top: 0,
+                  top: 1,
                   left: 24,
                   right: 24,
                   child: Opacity(

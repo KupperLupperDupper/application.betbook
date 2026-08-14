@@ -8,6 +8,7 @@ import '../../app/routes.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/deck_motion.dart';
 import '../../l10n/l10n_ext.dart';
+import '../../providers/settings_providers.dart';
 import '../../widgets/suit_icon.dart';
 import '../dashboard/dashboard_card.dart';
 import '../settings/settings_card.dart';
@@ -44,12 +45,20 @@ class _HomeShellState extends ConsumerState<HomeShell>
       PageController(viewportFraction: AppDeck.viewportFraction);
   int _index = 0;
 
-  // Deal-in animation (§1.3). Total covers card motion + indicator + FAB.
+  // Deal-in animation (§1.3). Total covers card motion (730) + indicator + FAB.
   late final AnimationController _dealIn = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 800),
+    duration: const Duration(milliseconds: 1000),
   );
   bool _dealDecided = false;
+
+  // First-run swipe nudge (v5 §5): the active card slides −10 dp and back, once
+  // ever, after deal-in — unless the user has already interacted.
+  late final AnimationController _nudge = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 280), // 120 out + 160 back
+  );
+  bool _interacted = false;
 
   // Settle emphasis (§1.5): a 420 ms hairline pulse on the card that just
   // landed, fired concurrently with the settle haptic. Only the card at
@@ -107,15 +116,30 @@ class _HomeShellState extends ConsumerState<HomeShell>
         if (mounted) {
           // The Dashboard card lands last — flick its hairline as it settles.
           _dealIn.forward().whenComplete(() {
-            if (mounted) _emphasise(_index);
+            if (mounted) {
+              _emphasise(_index);
+              _maybeNudge();
+            }
           });
         }
       });
     }
   }
 
+  /// Fires the one-shot swipe nudge 240 ms after the deal settles — first run
+  /// only, never under reduced motion, never if the user already interacted.
+  void _maybeNudge() {
+    final settings = ref.read(settingsProvider);
+    if (settings.deckNudgeShown || Motion.of(context).reduced) return;
+    ref.read(settingsProvider.notifier).markDeckNudgeShown();
+    Future.delayed(const Duration(milliseconds: 240), () {
+      if (mounted && !_interacted && _index == 0) _nudge.forward(from: 0);
+    });
+  }
+
   @override
   void dispose() {
+    _nudge.dispose();
     _settle.dispose();
     _dealIn.dispose();
     _controller.dispose();
@@ -142,6 +166,9 @@ class _HomeShellState extends ConsumerState<HomeShell>
       Motion.tick();
       _emphasise(i);
     }
+    // Any page change means the user found the swipe/nav — kill the nudge.
+    _interacted = true;
+    if (_nudge.isAnimating) _nudge.stop();
     setState(() => _index = i);
     // A swipe cancels any in-flight deal-in and hands control to the PageView.
     if (_dealIn.isAnimating) {
@@ -185,6 +212,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
                   dealIn: _dealIn,
                   settle: _settle,
                   settleIndex: _settleIndex,
+                  nudge: _nudge,
                   index: i,
                   currentIndex: _index,
                   suit: section.suit,
@@ -193,35 +221,32 @@ class _HomeShellState extends ConsumerState<HomeShell>
                 );
               },
             ),
-            // FAB sits centred in its own band ABOVE the suit indicator so they
-            // never overlap, whatever the FAB's width.
+            // FAB, bottom-right, clearing the nav pill (v5 §4).
             if (fab != null)
               Positioned(
-                left: 0,
-                right: 0,
-                bottom: 78,
-                child: Center(
-                  child: _DealInFade(
-                    listenable: _dealIn,
-                    start: 640 / 800,
-                    end: 800 / 800,
-                    scaleFrom: 0.9,
-                    child: fab,
-                  ),
+                right: 20,
+                bottom: 92,
+                child: _DealInFade(
+                  listenable: _dealIn,
+                  start: 790 / 1000,
+                  end: 970 / 1000,
+                  scaleFrom: 0.9,
+                  child: fab,
                 ),
               ),
             Positioned(
               left: 0,
               right: 0,
-              bottom: 16,
+              bottom: 22,
               child: Center(
                 child: _DealInFade(
                   listenable: _dealIn,
-                  start: 590 / 800,
-                  end: 770 / 800,
-                  child: _SuitIndicator(
+                  start: 730 / 1000,
+                  end: 930 / 1000,
+                  child: _NavPill(
                     suits: [for (final s in _sections) s.suit],
                     index: _index,
+                    labels: [for (final s in _sections) s.label(context)],
                     onTap: _goTo,
                   ),
                 ),
@@ -275,6 +300,7 @@ class _AnimatedDeckItem extends StatelessWidget {
     required this.dealIn,
     required this.settle,
     required this.settleIndex,
+    required this.nudge,
     required this.index,
     required this.currentIndex,
     required this.suit,
@@ -286,11 +312,26 @@ class _AnimatedDeckItem extends StatelessWidget {
   final Animation<double> dealIn;
   final Animation<double> settle;
   final int settleIndex;
+  final Animation<double> nudge;
   final int index;
   final int currentIndex;
   final CardSuit suit;
   final String label;
   final Widget content;
+
+  /// The first-run nudge (v5 §5): −10 dp out (120 ms) then back (160 ms),
+  /// easeOutCubic each leg. Applied to the active card only.
+  double _nudgeX(double v) {
+    if (v <= 0) return 0;
+    const outEnd = 120 / 280;
+    if (v <= outEnd) {
+      return lerpDouble(0, DealIn.nudgeDistance,
+          Curves.easeOutCubic.transform(v / outEnd))!;
+    }
+    final t = ((v - outEnd) / (1 - outEnd)).clamp(0.0, 1.0);
+    return lerpDouble(
+        DealIn.nudgeDistance, 0, Curves.easeOutCubic.transform(t))!;
+  }
 
   /// Maps the 420 ms settle controller (0→1) to a hairline intensity that
   /// rises (140 ms, easeOutCubic), holds (60 ms), then falls (220 ms,
@@ -308,7 +349,7 @@ class _AnimatedDeckItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final reduced = Motion.of(context).reduced;
     return AnimatedBuilder(
-      animation: Listenable.merge([controller, dealIn, settle]),
+      animation: Listenable.merge([controller, dealIn, settle, nudge]),
       child: content,
       builder: (context, content) {
         final page = (controller.hasClients && controller.position.haveDimensions)
@@ -327,11 +368,21 @@ class _AnimatedDeckItem extends StatelessWidget {
         var translate =
             reduced ? Offset.zero : Offset(0, DeckTransform.stackDrop(offset));
 
+        // Drag-only seam (v5 §5): adjacent cards separate by up to 8 dp while a
+        // drag is in flight, revealing the page surface; 0 at rest. Finger-
+        // driven, so kept even under reduced motion.
+        translate += Offset(-AppDeck.dragSeam * delta, 0);
+
+        // First-run nudge on the active card.
+        if (index == currentIndex && nudge.value > 0) {
+          translate += Offset(_nudgeX(nudge.value), 0);
+        }
+
         // Deal-in entry (back-to-front: ♣ ♦ ♥ ♠). Skipped when reduced.
         if (!reduced && dealIn.value < 1.0) {
-          final vMs = dealIn.value * 800;
-          final delayMs = 110.0 * (3 - index);
-          final tEntry = ((vMs - delayMs) / 460).clamp(0.0, 1.0);
+          final vMs = dealIn.value * 1000;
+          final delayMs = 100.0 * (3 - index);
+          final tEntry = ((vMs - delayMs) / 430).clamp(0.0, 1.0);
           final e = Curves.easeOutCubic.transform(tEntry);
           scale *= lerpDouble(DealIn.fromScale, 1.0, e)!;
           opacity *= e;
@@ -372,45 +423,64 @@ class _AnimatedDeckItem extends StatelessWidget {
   }
 }
 
-/// Centred ♠ ♥ ♦ ♣ row; active glyph larger and in primary, others outline.
-class _SuitIndicator extends StatelessWidget {
-  const _SuitIndicator({
+/// The bottom nav pill (v5 §4): an opaque ♠ ♥ ♦ ♣ pill that reads as tappable
+/// navigation — the active suit sits in a primaryContainer capsule. This is the
+/// permanent swipe/nav cue now that the cards no longer peek.
+class _NavPill extends StatelessWidget {
+  const _NavPill({
     required this.suits,
     required this.index,
+    required this.labels,
     required this.onTap,
   });
 
   final List<CardSuit> suits;
   final int index;
+  final List<String> labels;
   final ValueChanged<int> onTap;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(999),
+        // Opaque so no scrolling content can bleed through onto the glyphs.
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: DeckSurface.hairline(theme.brightness)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           for (var i = 0; i < suits.length; i++)
-            InkWell(
-              borderRadius: BorderRadius.circular(24),
-              onTap: () => onTap(i),
-              child: SizedBox(
-                width: 48,
-                height: 40,
-                child: Center(
-                  child: AnimatedScale(
+            Padding(
+              padding: EdgeInsets.only(left: i == 0 ? 0 : 4),
+              child: Semantics(
+                button: true,
+                selected: i == index,
+                label: labels[i],
+                child: InkWell(
+                  onTap: () => onTap(i),
+                  borderRadius: BorderRadius.circular(17),
+                  child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    scale: i == index ? 1.25 : 1.0,
+                    width: 44,
+                    height: 34,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: i == index
+                          ? scheme.primaryContainer
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(17),
+                    ),
                     child: SuitIcon(
                       suit: suits[i],
-                      color: i == index ? scheme.primary : scheme.outline,
-                      size: 16,
+                      color: i == index
+                          ? scheme.onPrimaryContainer
+                          : scheme.outline,
+                      size: i == index ? 17 : 15,
                     ),
                   ),
                 ),

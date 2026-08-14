@@ -64,7 +64,7 @@ class SitesCard extends ConsumerWidget {
             },
             slivers: [
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 140),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 140),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     Padding(

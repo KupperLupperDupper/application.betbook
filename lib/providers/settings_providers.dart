@@ -90,6 +90,9 @@ class SettingsController extends Notifier<AppSettings> {
       ));
 
   Future<void> endBreak() => _update(state.copyWith(breakUntilMillis: 0));
+
+  Future<void> markDeckNudgeShown() =>
+      _update(state.copyWith(deckNudgeShown: true));
 }
 
 final settingsProvider =

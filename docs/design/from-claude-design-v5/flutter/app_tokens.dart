@@ -40,14 +40,11 @@ class AppElevation {
 
 /// Deck navigation constants — see DESIGN_HANDOFF.md section 6.
 class AppDeck {
-  // v5 full-bleed: the active card runs edge-to-edge. The peek is gone; the
-  // swipe cue is the nav pill + first-run nudge + an 8 dp drag-only seam.
-  static const viewportFraction = 1.0; // was 0.92 \u2014 device-confirmable knob
-  static const dragSeam = 8.0; // page surface shown between cards while dragging
-  static const cardPadding = EdgeInsets.zero;
-  static const shape = BorderRadius.vertical(top: Radius.circular(28));
-  static const sectionPadding =
-      EdgeInsets.only(left: 20, right: 20, bottom: 140);
+  static const viewportFraction = 0.92;
+  static const neighbourScale = 0.94;
+  static const neighbourOpacity = 0.86;
+  static const parallaxFactor = 0.15;
+  static const peekWidth = 14.0;      // 18 at >= 400 dp
   static const flingThreshold = 350.0; // px/s
   static const spring = SpringDescription(mass: 1, stiffness: 220, damping: 26);
   static const suits = ['\u2660', '\u2665', '\u2666', '\u2663'];

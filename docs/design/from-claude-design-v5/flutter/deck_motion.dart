@@ -1,6 +1,7 @@
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 
 /// Motion + card-personality constants. See MOTION_HANDOFF.md.
@@ -29,8 +30,8 @@ class Motion {
   // ── Deck ──────────────────────────────────────────────────────────────
   Duration get deckPageJump => _d(380); // adjacent card, indicator tap
   Duration get deckPageJumpFar => _d(440); // 2–3 card jump
-  Duration get dealInCard => _d(430); // v5: re-tuned for a full-width card
-  Duration get dealInStagger => _d(100);
+  Duration get dealInCard => _d(430); // v5: re-tuned for the full-bleed card
+  Duration get dealInStagger => _d(100); // v5: total 730 ms (300 + 430)
   Duration get dealInIndicator => _d(200);
   Duration get dealInFab => _d(180);
   Duration get dealInCancel => _d(120);
@@ -97,21 +98,44 @@ class Motion {
 
 /// Per-card deal-in geometry (§1.3). Cards enter back-to-front: ♣ ♦ ♥ ♠.
 class DealIn {
-  // v5 full-bleed geometry (re-tuned for a 393 dp-wide card so the deal reads
-  // as a placement, not a slam).
-  static const Offset fromOffset = Offset(30, 18); // dp — was (44, 26)
+  // v5 amplitude: the card is now full-bleed (viewportFraction 1.0), so the
+  // v3 geometry — tuned against a 341 dp card — read as a slam at 393 dp.
+  static const Offset fromOffset = Offset(30, 18); // dp, was (44, 26)
   static const double fromScale = 0.955; // was 0.94
-  static const double fromRotation = 0.0559; // rad ≈ +3.2° — was 0.0785 (+4.5°)
+  static const double fromRotation = 0.0559; // rad ≈ +3.2°, was 0.0785 (+4.5°)
   static const List<int> order = [3, 2, 1, 0]; // deck index order of entry
 
   /// Delay for the card at [deckIndex] (0 = Dashboard ♠, lands last).
   static Duration delayFor(int deckIndex, Motion m) =>
       m.dealInStagger * (3 - deckIndex);
+}
 
-  // First-run swipe nudge (§5): one shot, once ever per install, after deal-in.
-  static const Duration nudgeOut = Duration(milliseconds: 120);
-  static const Duration nudgeBack = Duration(milliseconds: 160);
-  static const double nudgeDistance = -10.0; // dp, leftward
+/// Full-bleed deck layout + the one-shot first-run swipe nudge (v5,
+/// FULLBLEED_HANDOFF.md §1, §5). The swipe transforms are unchanged — they are
+/// drag-scoped and self-zero at rest, so they need no peek sliver.
+class DeckLayout {
+  /// Device-confirmable knob: 1.0 = no at-rest peek. 0.97 is the only
+  /// sanctioned alternative, and only if first-run swipe discovery fails.
+  static const double viewportFraction = 1.0;
+
+  /// Page surface showing between cards while a drag/fling is in flight.
+  /// Added as `dragSeam * dragProgress` to the page translation; 0 at rest,
+  /// so it costs no layout. Kept under reduced motion (finger-driven).
+  static const double dragSeam = 8.0; // dp
+
+  static const BorderRadius shape =
+      BorderRadius.vertical(top: Radius.circular(28));
+  static const EdgeInsets cardPadding = EdgeInsets.zero;
+  static const EdgeInsets sectionPadding =
+      EdgeInsets.only(left: 20, right: 20, bottom: 140);
+  static const double headerBandHeight = 52; // title + suit pip
+  static const double indicatorBottomInset = 22;
+  static const double fabBottomInset = 92;
+
+  /// One shot per install, 240 ms after deal-in settles, skipped entirely
+  /// under reduced motion. Persist the flag either way so it never fires late.
+  static const double nudgeDistance = -10; // dp, leftward
+  static const Duration nudgeDelay = Duration(milliseconds: 240);
 }
 
 /// Deck transition interpolation against PageView offset (§1.1).

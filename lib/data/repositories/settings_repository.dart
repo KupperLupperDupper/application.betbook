@@ -32,6 +32,7 @@ class SettingsRepository {
   static const _kRgReached = 'settings.rgReachedKey';
   static const _kRgNetLoss = 'settings.rgNetLossKey';
   static const _kBreakUntil = 'settings.breakUntilMillis';
+  static const _kDeckNudge = 'settings.deckNudgeShown';
 
   AppSettings load() {
     return AppSettings(
@@ -55,6 +56,7 @@ class SettingsRepository {
       rgReachedKey: _prefs.getString(_kRgReached) ?? '',
       rgNetLossKey: _prefs.getString(_kRgNetLoss) ?? '',
       breakUntilMillis: _prefs.getInt(_kBreakUntil) ?? 0,
+      deckNudgeShown: _prefs.getBool(_kDeckNudge) ?? false,
     );
   }
 
@@ -78,6 +80,7 @@ class SettingsRepository {
     await _prefs.setString(_kRgReached, s.rgReachedKey);
     await _prefs.setString(_kRgNetLoss, s.rgNetLossKey);
     await _prefs.setInt(_kBreakUntil, s.breakUntilMillis);
+    await _prefs.setBool(_kDeckNudge, s.deckNudgeShown);
   }
 
   ThemeMode _themeFromString(String? value) {

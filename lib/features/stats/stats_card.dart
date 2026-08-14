@@ -118,7 +118,7 @@ class _StatsCardState extends ConsumerState<StatsCard> {
       loading: false,
       skeleton: const _StatsSkeleton(),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 140),
         children: [
           SizedBox(
             height: 40,

@@ -30,7 +30,7 @@ class SettingsCard extends ConsumerWidget {
     final notifier = ref.read(settingsProvider.notifier);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 140),
       children: [
         // ---- General ----
         SettingsSection(
