@@ -549,24 +549,8 @@ class _BottomBarState extends State<_BottomBar>
         child: SizedBox(
           width: AppBottomBar.itemSize,
           height: AppBottomBar.itemSize,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SuitIcon(suit: widget.suits[i], color: color, size: size),
-              const SizedBox(height: AppBottomBar.underlineGap),
-              // Underline slot always reserved; only its opacity changes.
-              Opacity(
-                opacity: active,
-                child: Container(
-                  width: AppBottomBar.underlineW,
-                  height: AppBottomBar.underlineH,
-                  decoration: BoxDecoration(
-                    color: scheme.primary,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-            ],
+          child: Center(
+            child: SuitIcon(suit: widget.suits[i], color: color, size: size),
           ),
         ),
       ),

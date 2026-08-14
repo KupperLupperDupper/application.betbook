@@ -66,13 +66,12 @@ class AppBottomBar {
   static const double itemSize = 48; // per suit, visual box = tap target
   static const double itemGap = 4; // within a pair
   static const double centreGap = 20; // each side of the button
-  static const double centreGapTight = 10; // between the pairs, button away
+  // Button away: each side is half the item gap so all four suits end up evenly
+  // spaced (the centre gap between the pairs equals the within-pair gap).
+  static const double centreGapTight = itemGap / 2;
   static const double slot = 52; // centre slot width with the button (0 without)
   static const double glyphResting = 15;
   static const double glyphActive = 17;
-  static const double underlineW = 10;
-  static const double underlineH = 3;
-  static const double underlineGap = 5;
   static const double addSize = 52; // circular, radius = addSize / 2
   static const double addGlyph = 26;
 
